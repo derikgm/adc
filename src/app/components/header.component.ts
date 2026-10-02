@@ -1,13 +1,21 @@
 import { Component, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
+
+interface ItemMenu {
+  destino: string;
+  fragmento?: string;
+  label: string;
+}
 
 @Component({
   selector: 'app-header',
   standalone: true,
+  imports: [RouterLink],
   template: `
     <header class="fixed inset-x-0 top-0 z-50 bg-ink/95 backdrop-blur border-b border-navy-800">
       <nav class="container-adc flex h-16 items-center justify-between">
         <!-- Marca -->
-        <a href="#inicio" class="flex items-center gap-3">
+        <a routerLink="/" fragment="inicio" class="flex items-center gap-3">
           <img
             src="assets/images/logo.jpg"
             alt="ADC"
@@ -19,11 +27,12 @@ import { Component, signal } from '@angular/core';
         </a>
 
         <!-- Menú escritorio -->
-        <ul class="hidden items-center gap-8 text-sm font-medium text-navy-100 md:flex">
-          @for (item of menuItems; track item.id) {
+        <ul class="mx-auto hidden items-center gap-8 text-sm font-medium text-navy-100 md:flex">
+          @for (item of menuItems; track item.label) {
             <li>
               <a
-                [href]="'#' + item.id"
+                [routerLink]="item.destino"
+                [fragment]="item.fragmento"
                 (click)="closeMenu()"
                 class="transition-colors hover:text-gold-300"
                 >{{ item.label }}</a
@@ -32,12 +41,8 @@ import { Component, signal } from '@angular/core';
           }
         </ul>
 
-        <a
-          href="#contacto"
-          class="hidden rounded-md bg-gold-300 px-4 py-2 text-sm font-semibold text-navy-950 transition-colors hover:bg-gold-400 md:block"
-        >
-          Cotizar
-        </a>
+        <!-- El CTA de contacto ya no vive en el header: ahora es el botón
+             flotante de WhatsApp (app-whatsapp-button). -->
 
         <!-- Botón menú móvil -->
         <button
@@ -63,10 +68,11 @@ import { Component, signal } from '@angular/core';
       @if (menuOpen()) {
         <div class="border-t border-navy-800 bg-ink md:hidden">
           <ul class="container-adc flex flex-col gap-1 py-4 text-navy-100">
-            @for (item of menuItems; track item.id) {
+            @for (item of menuItems; track item.label) {
               <li>
                 <a
-                  [href]="'#' + item.id"
+                  [routerLink]="item.destino"
+                  [fragment]="item.fragmento"
                   (click)="closeMenu()"
                   class="block rounded-md px-3 py-2 transition-colors hover:bg-navy-900 hover:text-gold-300"
                   >{{ item.label }}</a
@@ -82,12 +88,16 @@ import { Component, signal } from '@angular/core';
 export class HeaderComponent {
   menuOpen = signal(false);
 
-  menuItems = [
-    { id: 'inicio', label: 'Inicio' },
-    { id: 'tienda', label: 'Tienda' },
-    { id: 'servicios', label: 'Servicios' },
-    { id: 'instalaciones', label: 'Instalaciones' },
-    { id: 'contacto', label: 'Contacto' },
+  /**
+   * «Tienda» apunta a la ruta /tienda; el resto vuelven al inicio con su
+   * ancla, para que el menú funcione igual desde la página de la tienda.
+   */
+  menuItems: ItemMenu[] = [
+    { destino: '/', fragmento: 'inicio', label: 'Inicio' },
+    { destino: '/tienda', label: 'Tienda' },
+    { destino: '/', fragmento: 'servicios', label: 'Servicios' },
+    { destino: '/', fragmento: 'instalaciones', label: 'Instalaciones' },
+    { destino: '/', fragmento: 'contacto', label: 'Contacto' },
   ];
 
   toggleMenu() {
