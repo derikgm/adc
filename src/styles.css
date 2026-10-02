@@ -1,0 +1,171 @@
+@import 'tailwindcss';
+
+/* ============================================
+   ADC · TEMA DE COLOR
+   Extraído de assets/images/A usar/Logo.jpg
+   Azul: #0145d4 (azul eléctrico) + navies #233961 #0a162c #020d1f
+   Dorado: #fedc19 (dorado vivo) + #c2a131 + #986823 + #fef5c0
+   Fondo del logo: #000000
+   ============================================ */
+@theme static {
+  /* Azules */
+  --color-navy-50: #eef3fd;
+  --color-navy-100: #d6e2fa;
+  --color-navy-200: #aec6f3;
+  --color-navy-300: #76a0e9;
+  --color-navy-400: #2f6ddb;
+  --color-navy-500: #0145d4; /* <- logo */
+  --color-navy-600: #0140b8;
+  --color-navy-700: #023490;
+  --color-navy-800: #233961; /* <- logo */
+  --color-navy-900: #0a162c; /* <- logo */
+  --color-navy-950: #020d1f; /* <- logo */
+
+  /* Dorados */
+  --color-gold-50: #fffceb;
+  --color-gold-100: #fef5c0; /* <- logo */
+  --color-gold-200: #fce98f;
+  --color-gold-300: #fedc19; /* <- logo */
+  --color-gold-400: #f0c40a;
+  --color-gold-500: #c2a131; /* <- logo */
+  --color-gold-600: #a87c1f;
+  --color-gold-700: #986823; /* <- logo */
+  --color-gold-800: #7a521d;
+  --color-gold-900: #5e3f18;
+
+  /* Negro puro: fondo del logo */
+  --color-ink: #000000;
+
+  /* Tipografías */
+  --font-sans: 'Montserrat', ui-sans-serif, system-ui, sans-serif;
+
+  /* Animaciones */
+  --animate-fade-in-up: fade-in-up 0.6s ease-out;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   BASE
+   ============================================ */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-navy-950);
+  color: var(--color-navy-100);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* NOTA sobre el logo (assets/images/logo.jpg)
+   El logo viene sobre fondo negro puro (#000000). Por eso el header, el hero y
+   el footer usan bg-ink: asi el fondo del logo se funde solo.
+   NO aplicar mix-blend-mode: screen al logo, apagaria los tonos navy
+   (#233961 / #0a162c) que son parte del diseno. */
+
+/* ============================================
+   UTILIDADES
+   ============================================ */
+@utility container-adc {
+  width: 100%;
+  margin-inline: auto;
+  max-width: 80rem;
+  padding-inline: 1rem;
+}
+
+@utility animate-fade-in-up {
+  animation: var(--animate-fade-in-up);
+}
+
+/* ============================================
+   CARRUSEL CONTINUO (cinta)
+   Las imágenes se desplazan de izquierda a derecha, en bucle infinito y a
+   todo el ancho de la pantalla.
+
+   Cada vuelta avanza el ancho de un grupo de imágenes y reinicia. Como la
+   lista se repite cada grupo, el empalme es invisible. El avance no es un
+   porcentaje fijo sino 1/N del ancho de la pista (N = número de copias), que
+   es lo que hace falta para que la cinta siempre cubra la pantalla entera,
+   mida lo que mida. `InstalacionesComponent` calcula ese valor midiendo el
+   ancho real del grupo y el de la ventana.
+   ============================================ */
+.marquee {
+  overflow: hidden;
+  /* Desvanecido en los bordes: las fotos no aparecen cortadas. */
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 6%,
+    #000 94%,
+    transparent
+  );
+}
+
+/* La pista no tiene `gap`: el espacio va dentro de cada grupo (incluido al
+   final). Así el empalme del bucle cae exacto y no se ve el corte. */
+.marquee__track {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 45s linear infinite;
+  will-change: transform;
+}
+
+.marquee__group {
+  display: flex;
+  flex-shrink: 0;
+  gap: 1rem;
+  padding-right: 1rem;
+}
+
+/* Se detiene al pasar el cursor o al enfocarlo con el teclado. */
+.marquee:hover .marquee__track,
+.marquee:focus-within .marquee__track {
+  animation-play-state: paused;
+}
+
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(var(--marquee-shift, -50%));
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Para quien prefiera menos movimiento, la cinta se vuelve una fila
+   desplazable a mano en vez de girar sola. */
+@media (prefers-reduced-motion: reduce) {
+  .marquee {
+    overflow-x: auto;
+    mask-image: none;
+  }
+  .marquee__track {
+    animation: none;
+  }
+}
+
+/* Barra de desplazamiento azul/dorada */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background-color: var(--color-navy-950);
+}
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-navy-800);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-gold-500);
+}
