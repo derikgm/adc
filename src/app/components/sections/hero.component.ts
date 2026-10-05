@@ -6,12 +6,33 @@ import { RouterLink } from '@angular/router';
   standalone: true,
   imports: [RouterLink],
   template: `
-    <section id="inicio" class="bg-ink">
+    <section id="inicio" class="relative overflow-hidden bg-ink">
+      <!-- La foto es el fondo de toda la sección (decorativa: el texto ya
+           cuenta qué se ve). object-center deja a los operarios en cuadro
+           tanto en pantalla ancha como en móvil. -->
+      <img
+        src="assets/images/hero.jpg"
+        alt=""
+        aria-hidden="true"
+        width="1920"
+        height="1440"
+        fetchpriority="high"
+        class="absolute inset-0 h-full w-full object-cover object-center"
+      />
+
+      <!-- Velo: la foto es muy clara (cielo blanco) y el texto tiene que
+           leerse. Abajo queda más oscuro para fundir con la sección
+           siguiente. -->
       <div
-        class="container-adc grid gap-10 py-16 md:grid-cols-5 md:items-center md:gap-14 md:py-24"
-      >
-        <!-- Información: 2 de 5 columnas (40 %) -->
-        <div class="md:col-span-2">
+        class="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/40 to-ink/30"
+      ></div>
+
+      <!-- Información: contenedor a la derecha, encima de la foto y con fondo
+           medio negro para que no se pierda en el brillo. -->
+      <div class="container-adc relative flex justify-end py-16 md:py-24">
+        <div
+          class="w-full max-w-xl rounded-2xl border border-navy-800/70 bg-ink/75 p-7 shadow-2xl backdrop-blur-sm md:p-9"
+        >
           <p
             class="mb-4 inline-block rounded-full border border-gold-500/40 px-4 py-1 text-xs font-semibold tracking-widest text-gold-300 uppercase"
           >
@@ -37,30 +58,6 @@ import { RouterLink } from '@angular/router';
             >
               Ir a la tienda
             </a>
-          </div>
-        </div>
-
-        <!-- Foto: 3 de 5 columnas (60 %). La foto es muy clara y brillante, así
-             que dos degradados la funden con el fondo negro del hero por el borde
-             que toca el texto y por abajo. No usar mix-blend-mode (ver styles.css). -->
-        <div class="md:col-span-3">
-          <div
-            class="relative overflow-hidden rounded-2xl border border-navy-800"
-          >
-            <img
-              src="assets/images/hero.jpg"
-              alt="Instalación eléctrica de ADC"
-              width="1920"
-              height="1440"
-              fetchpriority="high"
-              class="aspect-[4/3] w-full object-cover"
-            />
-            <div
-              class="pointer-events-none absolute inset-0 bg-gradient-to-r from-ink via-ink/20 to-transparent"
-            ></div>
-            <div
-              class="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/80 via-transparent to-transparent"
-            ></div>
           </div>
         </div>
       </div>

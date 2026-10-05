@@ -75,3 +75,34 @@ Debido a que el servidor esta alojado en un sitio de hosting que suele tener una
 - [x] 3. Establecer para toda la web, que el tiempo maximo de espera para las peticiones al servidor es una maximo de 30 segundos
 
 3. resultado (hecho): `src/app/interceptors/timeout.interceptor.ts` aplica un `timeout(30000)` a TODAS las peticiones de `HttpClient`; se registra una sola vez en `app.config.ts` con `provideHttpClient(withInterceptors([timeoutInterceptor]))`, así que cubre el presente y lo futuro. Al agotarse, la vista muestra «El servidor tardó más de 30 segundos en responder. Inténtalo de nuevo.» con su botón de reintento (comprobado en el test de `productos.service.spec.ts`).
+
+-[] 4. Quitar el botón «Cotizar» del header y poner un botón flotante de WhatsApp:
+
+4. contexto:
+Petición nueva del cliente (no estaba en la lista original).
+- El botón «Cotizar» que está a la derecha del header debe desaparecer.
+- En su lugar, un botón flotante en la esquina inferior derecha, visible en todas las páginas, con el icono de WhatsApp, que abra directamente la aplicación de WhatsApp con este número: "59061926" (https://wa.me/59061926).
+- Que no lleve el verde brillante de WhatsApp: su color debe ir en concordancia con la página web (dorado y navy del logo).
+
+4. resultado (hecho):
+- Se borró el bloque «Cotizar» de `header.component.ts` y el menú quedó centrado (`mx-auto`) para que el hueco no se note.
+- Nuevo componente `src/app/components/whatsapp-button.component.ts`: círculo fijo abajo a la derecha (`fixed bottom-6 right-6 z-50`) en dorado `gold-300` con el icono en navy `ink` (el mismo tratamiento que los demás CTA de la web, nada de verde WhatsApp), borde y sombra navy, y `hover:scale-110`.
+- El enlace es `https://wa.me/59061926` con `target="_blank"` + `rel="noopener"`, `aria-label` y `title`. El número está en una constante (`NUMERO_WHATSAPP`) para cambiarlo sin tocar el template.
+- Se monta en `app.ts`, así que se ve en el home y en `/tienda`.
+- Test nuevo `whatsapp-button.component.spec.ts`: comprueba el enlace, el target, los colores y que «Cotizar» ya no aparece en el header (siguen estando los 5 menús).
+
+- [x] 5. Cambiar el hero: hero.jpg como fondo de toda la sección:
+
+5. contexto:
+Petición nueva del cliente.
+- La foto dentro de su contenedor a un lado no logra verse bien, y en teléfono se ve bastante fea.
+- Ahora hero.jpg debe verse en TODA la sección hero como imagen de fondo.
+- El contenedor con la información (título, texto y los botones «Ver instalaciones» / «Ir a la tienda») va encima de esa foto, ajustado a su color, con un fondo medio negro porque la imagen es bastante brillante y si no no se logra ver todo.
+- Ese contenedor, en vez de estar a la izquierda, debe estar a la DERECHA.
+
+5. resultado (hecho):
+- `hero.component.ts` reescrito: la sección es `relative overflow-hidden bg-ink` y `hero.jpg` pasa a `<img>` absoluto (`inset-0 h-full w-full object-cover object-center`, decorativa con `alt=""` y `aria-hidden`) → la foto cubre **toda** la sección, ya no tiene contenedor propio ni `aspect-[4/3]`.
+- Velo encima: `bg-gradient-to-t from-ink/85 via-ink/40 to-ink/30`, que baja el brillo del cielo para que se lea todo y funde el borde inferior con la sección siguiente.
+- El contenedor de la información va a la derecha (`flex justify-end` dentro de `container-adc`) con fondo medio negro: `bg-ink/75` + `backdrop-blur-sm` + borde navy + `max-w-xl` (en móvil ocupa todo el ancho). Sumado al velo, dentro del panel la foto queda al ~85-95 % de negro: texto blanco legible y la foto sigue asomando por fuera del panel.
+- Contenido intacto: pill, «ADC», párrafo y botones «Ver instalaciones» (`#instalaciones`) e «Ir a la tienda» (`/tienda`).
+- Test nuevo `hero.component.spec.ts` (la foto de fondo de toda la sección y el panel a la derecha con sus botones). Verificado con `npm run build` y `npx ng test`: **10 tests en verde en 4 ficheros**.

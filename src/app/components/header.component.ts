@@ -27,7 +27,7 @@ interface ItemMenu {
         </a>
 
         <!-- Menú escritorio -->
-        <ul class="hidden items-center gap-8 text-sm font-medium text-navy-100 md:flex">
+        <ul class="mx-auto hidden items-center gap-8 text-sm font-medium text-navy-100 md:flex">
           @for (item of menuItems; track item.label) {
             <li>
               <a
@@ -41,13 +41,8 @@ interface ItemMenu {
           }
         </ul>
 
-        <a
-          routerLink="/"
-          fragment="contacto"
-          class="hidden rounded-md bg-gold-300 px-4 py-2 text-sm font-semibold text-navy-950 transition-colors hover:bg-gold-400 md:block"
-        >
-          Cotizar
-        </a>
+        <!-- El CTA de contacto ya no vive en el header: ahora es el botón
+             flotante de WhatsApp (app-whatsapp-button). -->
 
         <!-- Botón menú móvil -->
         <button
