@@ -21,11 +21,23 @@ Los artefactos se generan en `dist/ADC/browser/`.
 ## Deploy (GitHub Pages)
 
 ```bash
-npm run build
-npx ghpages -d dist/ADC/browser
+npm run deploy
 ```
 
-El `baseHref` configurado es `/ADC/`.
+Ejecuta `ng deploy`: compila en modo producción (aplicando el `baseHref` de
+`build.configurations.production`) y sube `dist/ADC/browser` a la rama
+`gh-pages` de este repositorio, que es la que publica GitHub Pages.
+
+El `baseHref` es `/adc/` **en minúsculas**: con `/ADC/` la app no carga, porque el
+navegador pediría los `.js` en la raíz del sitio (`derikgm.github.io/main-….js`),
+GitHub Pages devolvería su 404 como `text/html` y el navegador bloquearía el módulo
+con *"tipo MIME no permitido"*.
+
+La app usa rutas con hash (`withHashLocation()`), así que no necesita un `404.html`
+de respaldo para rutas profundas; aun así `angular-cli-ghpages` lo genera.
+
+> ⚠️ Nunca publiques una carpeta `dist/` vieja: `npm run deploy` reconstruye desde el
+> código actual. Si quieres estar seguro, borra `dist/` antes (`rm -rf dist`).
 
 ## Tests
 

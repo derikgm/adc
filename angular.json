@@ -34,6 +34,7 @@
           },
           "configurations": {
             "production": {
+              "baseHref": "/adc/",
               "optimization": {
                 "scripts": true,
                 "fonts": false,
@@ -78,8 +79,10 @@
         },
         "deploy": {
           "builder": "angular-cli-ghpages:deploy",
-            "options": {
-            "baseHref": "/ADC/"
+          "options": {
+            "buildTarget": "ADC:build:production",
+            "baseHref": "/adc/",
+            "dir": "dist/ADC/browser"
           }
         }
       }
