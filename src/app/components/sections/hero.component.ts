@@ -42,8 +42,7 @@ import { RouterLink } from '@angular/router';
             ADC
           </h1>
           <p class="mt-4 max-w-md text-lg text-navy-200">
-            Suministro de material eléctrico, instalación de paneles y mantenimiento
-            con garantía.
+            Suministro de material eléctrico, instalación de paneles y montaje de kits completos
           </p>
           <div class="mt-8 flex flex-wrap gap-3">
             <a

@@ -35,17 +35,18 @@ describe('Vistas de la tienda', () => {
   /** Responde a /adc/productos con 7 productos repartidos en 2 secciones. */
   function responderConSieteProductos() {
     http.expectOne(`${SERVIDOR}/adc/productos`).flush({
-      secciones: ['equipos', 'aseo'],
-      equipos: [
-        { id: 1, nombre: 'Taladro percutor', precio: 3000, imagen_url: 'a.jpg', moneda: 'CUP' },
-        { id: 2, nombre: 'Compresor', precio: 20, imagen_url: null, moneda: 'USD' },
-        { id: 3, nombre: 'Amperímetro', precio: 15, imagen_url: null, moneda: 'CUP' },
-        { id: 4, nombre: 'Pinza amperométrica', precio: 25, imagen_url: null, moneda: 'USD' },
-        { id: 5, nombre: 'Cable calibre 10', precio: 90, imagen_url: null, moneda: 'CUP' },
-        { id: 6, nombre: 'Termomagnética', precio: 12, imagen_url: null, moneda: 'USD' },
+      secciones: [
+        { id: 1, nombre: 'equipos' },
+        { id: 2, nombre: 'aseo' },
       ],
-      aseo: [
-        { id: 7, nombre: 'Extintor', precio: 8, imagen_url: null, moneda: 'USD' },
+      productos: [
+        { id: 1, nombre: 'Taladro percutor', precio: 3000, imagen_url: 'a.jpg', moneda: 'CUP', seccion: 'equipos', seccion_id: 1 },
+        { id: 2, nombre: 'Compresor', precio: 20, imagen_url: null, moneda: 'USD', seccion: 'equipos', seccion_id: 1 },
+        { id: 3, nombre: 'Amperímetro', precio: 15, imagen_url: null, moneda: 'CUP', seccion: 'equipos', seccion_id: 1 },
+        { id: 4, nombre: 'Pinza amperométrica', precio: 25, imagen_url: null, moneda: 'USD', seccion: 'equipos', seccion_id: 1 },
+        { id: 5, nombre: 'Cable calibre 10', precio: 90, imagen_url: null, moneda: 'CUP', seccion: 'equipos', seccion_id: 1 },
+        { id: 6, nombre: 'Termomagnética', precio: 12, imagen_url: null, moneda: 'USD', seccion: 'equipos', seccion_id: 1 },
+        { id: 7, nombre: 'Extintor', precio: 8, imagen_url: null, moneda: 'USD', seccion: 'aseo', seccion_id: 2 },
       ],
     });
   }
@@ -83,5 +84,44 @@ describe('Vistas de la tienda', () => {
     expect(raiz.querySelector('nav a[href="#seccion-equipos"]')).toBeTruthy();
     expect(raiz.textContent).toContain('Extintor');
     expect(raiz.textContent).toContain('8 USD');
+  });
+
+  it('agrupa al final los productos sin sección y no pinta secciones vacías', () => {
+    const fixture = TestBed.createComponent(TiendaPageComponent);
+    fixture.detectChanges();
+
+    http.expectOne(`${SERVIDOR}/adc/productos`).flush({
+      secciones: [
+        { id: 1, nombre: 'equipos' },
+        { id: 3, nombre: 'vacia' },
+      ],
+      productos: [
+        {
+          id: 1,
+          nombre: 'Taladro',
+          precio: 3000,
+          imagen_url: null,
+          moneda: 'CUP',
+          seccion: 'equipos',
+          seccion_id: 1,
+        },
+        {
+          id: 9,
+          nombre: 'Sin clasificar',
+          precio: 5,
+          imagen_url: null,
+          moneda: 'CUP',
+          seccion: null,
+          seccion_id: null,
+        },
+      ],
+    });
+    fixture.detectChanges();
+
+    const raiz: HTMLElement = fixture.nativeElement;
+    expect(
+      [...raiz.querySelectorAll('h2')].map((h) => h.textContent?.trim()),
+    ).toEqual(['equipos', 'Sin sección']);
+    expect(raiz.textContent).toContain('Sin clasificar');
   });
 });

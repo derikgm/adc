@@ -30,7 +30,7 @@ describe('ProductosService', () => {
 
   afterEach(() => http.verify());
 
-  it('cae a /delys/dulces cuando /adc/productos devuelve 404', () => {
+  it('ante un 404 enseña el error y no se cuela el catálogo de Delys', () => {
     service.cargar();
     expect(service.cargando()).toBe(true);
 
@@ -38,18 +38,13 @@ describe('ProductosService', () => {
       .expectOne(`${SERVIDOR}/adc/productos`)
       .flush({ message: 'Not Found' }, { status: 404, statusText: 'Not Found' });
 
-    http
-      .expectOne(`${SERVIDOR}/delys/dulces`)
-      .flush({
-        dulces: [
-          { id: 1, nombre: 'Charolas', precio: 1000, imagen_url: null },
-        ],
-      });
+    // Ya no existe el respaldo a /delys/dulces: el endpoint de ADC está
+    // programado, y enseñar productos de otro negocio es peor que un error.
+    http.expectNone(`${SERVIDOR}/delys/dulces`);
 
     expect(service.cargando()).toBe(false);
-    expect(service.error()).toBeNull();
-    expect(service.primerosProductos(5).length).toBe(1);
-    expect(service.primerosProductos(5)[0].moneda).toBe('CUP');
+    expect(service.error()).toBe('No se pudieron obtener los datos del servidor.');
+    expect(service.primerosProductos(5).length).toBe(0);
   });
 
   it('propaga el error, avisa y deja reintentar', () => {
@@ -69,7 +64,20 @@ describe('ProductosService', () => {
     service.cargar();
     http
       .expectOne(`${SERVIDOR}/adc/productos`)
-      .flush({ secciones: ['luz'], luz: [{ id: 2, nombre: 'Foco', precio: 10, moneda: 'USD' }] });
+      .flush({
+        secciones: [{ id: 1, nombre: 'luz' }],
+        productos: [
+          {
+            id: 2,
+            nombre: 'Foco',
+            precio: 10,
+            moneda: 'USD',
+            imagen_url: null,
+            seccion: 'luz',
+            seccion_id: 1,
+          },
+        ],
+      });
 
     expect(service.cargando()).toBe(false);
     service.cargar();

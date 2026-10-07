@@ -2,10 +2,16 @@
  * Modelo de catálogo de la tienda.
  *
  * El servidor `https://derikgm-msf-nestjs.wasmer.app` expone:
- *   GET /adc/productos → { "secciones": ["equipos", ...], "equipos": [...], ... }
  *
- * Mientras esa ruta no exista (404) se usa `GET /delys/dulces` como respaldo,
- * que devuelve { "dulces": [Producto...] }.
+ *   GET /adc/productos → {
+ *     productos: [
+ *       { id, nombre, precio, moneda, imagen_url, seccion_id, seccion }
+ *     ],
+ *     secciones: [ { id, nombre } ]
+ *   }
+ *
+ * La tienda agrupa cada producto por su `seccion` y ordena los grupos según la
+ * lista `secciones`, que es el orden que ha puesto el panel de administración.
  */
 
 /** Producto tal y como llega del servidor, con todo aún sin normalizar. */
@@ -16,6 +22,13 @@ export interface ProductoServidor {
   imagen_url?: string | null;
   imagen_bytes?: number | null;
   moneda?: string | null;
+  /**
+   * Sección del producto. `GET /adc/productos` manda el nombre (`"electronico"`)
+   * y `GET /delys/dulces` manda la sección entera (`{ id, nombre }`): se
+   * entienden las dos formas, y si no viene nada queda `null`.
+   */
+  seccion?: string | { id?: number; nombre?: string } | null;
+  seccion_id?: number | null;
 }
 
 /** Producto ya listo para pintar. */
@@ -25,6 +38,10 @@ export interface Producto {
   precio: number;
   imagen_url: string | null;
   moneda: string;
+  /** Nombre de la sección a la que pertenece; `null` si está sin asignar. */
+  seccion: string | null;
+  /** Id de esa sección, por si hay que enlazar con ella. */
+  seccion_id: number | null;
 }
 
 /** Catálogo agrupado por secciones. */
@@ -37,11 +54,18 @@ export interface Catalogo {
 
 /**
  * Moneda asumida cuando el servidor no manda ninguna. Los precios que vienen
- * sin moneda (catálogo de practica /delys/dulces) están en pesos cubanos.
+ * sin moneda (por ejemplo los del respaldo `/delys/dulces`) están en pesos
+ * cubanos.
  */
 export const MONEDA_POR_DEFECTO = 'CUP';
 
-/** Normaliza un producto suelto: precio numérico y moneda en mayúsculas. */
+/**
+ * Rótulo del grupo de los productos que llegan sin sección asignada. Mejor
+ * salir etiquetados en la tienda que desaparecer del catálogo.
+ */
+export const SECCION_SIN_SECCION = 'Sin sección';
+
+/** Normaliza un producto suelto: precio numérico, moneda y sección listas. */
 export function normalizarProducto(bruto: ProductoServidor): Producto {
   const precio = Number(bruto.precio);
   const moneda = String(bruto.moneda ?? '')
@@ -54,49 +78,82 @@ export function normalizarProducto(bruto: ProductoServidor): Producto {
     precio: Number.isFinite(precio) ? precio : 0,
     imagen_url: bruto.imagen_url || null,
     moneda: moneda || MONEDA_POR_DEFECTO,
+    seccion: nombreDeSeccion(bruto.seccion),
+    seccion_id: typeof bruto.seccion_id === 'number' ? bruto.seccion_id : null,
   };
 }
 
-/** Convierte la respuesta de `GET /adc/productos` en un catálogo. */
+/**
+ * Convierte la respuesta de `GET /adc/productos` en un catálogo.
+ *
+ * Quién manda es el servidor: el **orden** lo dicta la lista `secciones` y la
+ * **pertenencia** la `seccion` de cada producto. De ahí salen tres reglas:
+ *
+ * - Se agrupa por la sección del producto, no por las claves del objeto: así no
+ *   se pierde ninguno aunque su sección no figure en la lista.
+ * - Las secciones que no lleven ningún producto no se pintan (pasaba ya antes).
+ * - Lo que sobre de orden (una sección que llega por producto pero no en la
+ *   lista) se queda al final, y los productos sin sección van agrupados en
+ *   `SECCION_SIN_SECCION`.
+ */
 export function normalizarCatalogoADC(datos: unknown): Catalogo {
   const bruto = (datos ?? {}) as Record<string, unknown>;
-  const listado = (valor: unknown): ProductoServidor[] =>
-    Array.isArray(valor) ? (valor as ProductoServidor[]) : [];
 
-  // La lista oficial de secciones manda; si el servidor no la manda, se toman
-  // las claves que tengan una lista de productos.
-  const anunciadas = listado(bruto['secciones']).map((nombre) => String(nombre));
-  const porClave = Object.keys(bruto).filter(
-    (clave) => clave !== 'secciones' && Array.isArray(bruto[clave]),
-  );
-  const secciones = [...anunciadas, ...porClave.filter((c) => !anunciadas.includes(c))];
-
-  const productos: Record<string, Producto[]> = {};
-  const visibles: string[] = [];
-
-  for (const seccion of secciones) {
-    const items = listado(bruto[seccion]).map(normalizarProducto);
-    if (!items.length) continue; // no pintar secciones vacías
-    productos[seccion] = items;
-    visibles.push(seccion);
-  }
-
-  return { secciones: visibles, productos };
-}
-
-/** Convierte la respuesta de `GET /delys/dulces` en un catálogo de una sección. */
-export function normalizarCatalogoRespaldo(datos: unknown): Catalogo {
-  const bruto = (datos ?? {}) as Record<string, unknown>;
-  const lista = Array.isArray(bruto['dulces'])
-    ? (bruto['dulces'] as ProductoServidor[])
+  const anunciadas: string[] = Array.isArray(bruto['secciones'])
+    ? (bruto['secciones'] as unknown[])
+        .map(nombreDeSeccion)
+        .filter((nombre): nombre is string => nombre !== null)
     : [];
 
-  const productos = lista.map(normalizarProducto);
+  const listado = Array.isArray(bruto['productos'])
+    ? (bruto['productos'] as ProductoServidor[])
+    : [];
 
-  return {
-    secciones: productos.length ? ['dulces'] : [],
-    productos: { dulces: productos },
-  };
+  const grupos = new Map<string, Producto[]>();
+  const sueltos: Producto[] = [];
+
+  for (const producto of listado.map(normalizarProducto)) {
+    if (!producto.seccion) {
+      sueltos.push(producto);
+      continue;
+    }
+
+    const grupo = grupos.get(producto.seccion);
+    if (grupo) grupo.push(producto);
+    else grupos.set(producto.seccion, [producto]);
+  }
+
+  const secciones = [
+    ...anunciadas.filter((nombre) => grupos.has(nombre)),
+    ...[...grupos.keys()].filter((nombre) => !anunciadas.includes(nombre)),
+  ];
+
+  const productos: Record<string, Producto[]> = {};
+  for (const nombre of secciones) productos[nombre] = grupos.get(nombre) ?? [];
+
+  if (sueltos.length) {
+    if (!secciones.includes(SECCION_SIN_SECCION)) secciones.push(SECCION_SIN_SECCION);
+    productos[SECCION_SIN_SECCION] = [
+      ...(productos[SECCION_SIN_SECCION] ?? []),
+      ...sueltos,
+    ];
+  }
+
+  return { secciones, productos };
+}
+
+/**
+ * Nombre de la sección, venga como venga. Si no hay ninguno, `null`.
+ */
+function nombreDeSeccion(valor: unknown): string | null {
+  if (typeof valor === 'string') return valor.trim() || null;
+
+  if (typeof valor === 'object' && valor !== null) {
+    const nombre = (valor as { nombre?: unknown }).nombre;
+    if (typeof nombre === 'string') return nombre.trim() || null;
+  }
+
+  return null;
 }
 
 /** Todos los productos del catálogo, en el orden de las secciones. */

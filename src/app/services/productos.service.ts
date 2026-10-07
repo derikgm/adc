@@ -1,23 +1,15 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
-import { Observable, catchError, map, throwError } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import {
   Catalogo,
   Producto,
   normalizarCatalogoADC,
-  normalizarCatalogoRespaldo,
   todosLosProductos,
 } from '../models/productos';
 
 /** Dirección del servidor (msf-nestjs). */
 export const SERVIDOR = 'https://derikgm-msf-nestjs.wasmer.app';
-
-/**
- * `true` mientras `GET /adc/productos` siga sin existir en el servidor: se cae
- * a `GET /delys/dulces` (catálogo de practica) para poder ver la tienda ya.
- * Ponerlo en `false` en cuanto el endpoint de ADC esté programado.
- */
-const USAR_RESPALDO = true;
 
 const MENSAJE_TIEMPO_AGOTADO =
   'El servidor tardó más de 30 segundos en responder. Inténtalo de nuevo.';
@@ -30,6 +22,12 @@ const MENSAJE_ERROR = 'No se pudieron obtener los datos del servidor.';
  * servidor —de ahí el spinner— y el resultado se queda en memoria, así que al
  * pasar del home a `/tienda` no vuelve a esperar. Los errores quedan como
  * estado para que la vista pinte el mensaje y su botón de reintento.
+ *
+ * Solo se pide `GET /adc/productos`. Antes existía un respaldo que, ante un
+ * `404`, caía a `GET /delys/dulces` (catálogo de práctica, de cuando esta ruta
+ * no estaba programada): se quitó en cuanto el endpoint de ADC existió, porque
+ * **enseñar productos de otro negocio es peor que un error**, y un error se
+ * puede reintentar.
  */
 @Injectable({ providedIn: 'root' })
 export class ProductosService {
@@ -69,32 +67,10 @@ export class ProductosService {
   }
 
   private pedirCatalogo(): Observable<Catalogo> {
-    return this.http.get<unknown>(`${SERVIDOR}/adc/productos`).pipe(
-      map(normalizarCatalogoADC),
-      catchError((error) => this.respaldo(error)),
-    );
-  }
-
-  /**
-   * Respaldo: solo ante un 404, que es lo que responde el servidor mientras
-   * `/adc/productos` no esté programado. El resto de fallos (500, timeout…)
-   * se dejan propagar para no enseñar productos que no son de ADC.
-   */
-  private respaldo(error: unknown): Observable<Catalogo> {
-    if (!USAR_RESPALDO || !esStatus(error, 404)) return throwError(() => error);
-
     return this.http
-      .get<unknown>(`${SERVIDOR}/delys/dulces`)
-      .pipe(map(normalizarCatalogoRespaldo));
+      .get<unknown>(`${SERVIDOR}/adc/productos`)
+      .pipe(map(normalizarCatalogoADC));
   }
-}
-
-function esStatus(error: unknown, status: number): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    (error as { status?: number }).status === status
-  );
 }
 
 /** El timeout global de 30 s llega como TimeoutError de RxJS. */

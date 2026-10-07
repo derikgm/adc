@@ -106,3 +106,47 @@ Petición nueva del cliente.
 - El contenedor de la información va a la derecha (`flex justify-end` dentro de `container-adc`) con fondo medio negro: `bg-ink/75` + `backdrop-blur-sm` + borde navy + `max-w-xl` (en móvil ocupa todo el ancho). Sumado al velo, dentro del panel la foto queda al ~85-95 % de negro: texto blanco legible y la foto sigue asomando por fuera del panel.
 - Contenido intacto: pill, «ADC», párrafo y botones «Ver instalaciones» (`#instalaciones`) e «Ir a la tienda» (`/tienda`).
 - Test nuevo `hero.component.spec.ts` (la foto de fondo de toda la sección y el panel a la derecha con sus botones). Verificado con `npm run build` y `npx ng test`: **10 tests en verde en 4 ficheros**.
+
+- [x] 6. Modificar la pagina web adc: la tienda, repartida por secciones
+
+6. contexto (viene de `/todo.md`, punto 1): `GET /adc/productos` ya está
+programado y devuelve más cosas que con las que se trabajaba:
+
+```jsonc
+{
+  "productos": [ { "id": 7, "nombre": "Inversor 1500W", "precio": 18500,
+                   "moneda": "CUP", "imagen_url": null,
+                   "seccion_id": 4, "seccion": "electronico" } ],
+  "secciones": [ { "id": 4, "nombre": "electronico" } ]
+}
+```
+
+La intención es que en la tienda aparezcan los productos **divididos por las
+secciones que llegan**. Esta web seguía escrita para el contrato anterior
+(`{ "secciones": ["equipos"], "equipos": [...] }`), así que con el formato nuevo
+salía un rótulo `[object Object]` y todo el catálogo bajo uno solo llamado
+`productos`.
+
+6. resultado (hecho):
+- `src/app/models/productos.ts`: `Producto` gana `seccion: string | null` y
+  `seccion_id: number | null`; `normalizarCatalogoADC()` agrupa cada producto
+  por su `seccion` y respeta el orden de la lista `secciones`; `nombreDeSeccion()`
+  entiende tanto el texto (`"electronico"`) como el objeto (`{ id, nombre }`) que
+  manda `GET /delys/dulces`. Las secciones vacías no se pintan y lo que sobre de
+  orden se queda al final; los productos sin sección van agrupados en
+  «Sin sección» (`SECCION_SIN_SECCION`).
+- `src/app/services/productos.service.ts`: fuera el respaldo a `GET /delys/dulces`
+  (`USAR_RESPALDO`), que era un apaño de cuando esta ruta no existía: ahora un
+  `404` se enseña como error con su «Reintentar» en vez de colar los productos de
+  Delys en la tienda de ADC.
+- Specs actualizados al contrato nuevo (`productos.service.spec.ts`,
+  `tienda.page.spec.ts`) más uno nuevo para el caso de producto suelto y sección
+  vacía. Verificado con `npm run build`, `npx tsc -p tsconfig.spec.json --noEmit`
+  y `npx ng test`: **11 tests en verde en 4 ficheros**.
+- Prueba con datos reales (backend local + Postgres en Docker): 2 secciones y 3
+  productos creados desde el panel por API; la respuesta real pasada por
+  `normalizarCatalogoADC()` deja la tienda en
+  `["herramientas","paneles solares"]` con cada producto en su sitio.
+- Ojo: un producto dado de alta **sin `seccion_id`** cae en la sección `dulces`
+  de ADC y `GET /adc/productos` **no lo devuelve**, así que no sale en la tienda
+  (comprobado: de 4 creados, 3 visibles).
