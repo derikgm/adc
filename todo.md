@@ -58,7 +58,7 @@ El estilo de dicha ruta /tienda sera muy similar a esta pagina: https://elyerrom
 - Vista previa en el home (section#tienda): hasta 5 productos de todo el catálogo + botón «Ver toda la tienda» → `/tienda`.
 - Página `/tienda` (`src/app/pages/tienda.page.ts`): barra de secciones fija bajo el header con salto a cada una, un título por sección y cuadrícula de tarjetas, con el aire de elyerromenu.com.
 - Tarjeta de producto nueva: `src/app/components/producto-card.component.ts`.
-- Nota de despliegue: el hosting estático debe saber enrutar (fallback al index) para que `{dominio}/tienda` abierto directamente no dé 404. En GitHub Pages se resuelve copiando el `index.html` compilado a `404.html` (así está en Delys); en el repo de ADC todavía no hay Pages activado, así que se deja anotado para cuando se publique.
+- Nota de despliegue: el hosting estático debe saber enrutar (fallback al index) para que `{dominio}/tienda` abierto directamente no dé 404. En GitHub Pages se resuelve copiando el `index.html` compilado a `404.html` (así está en Delys). **Actualizado 2026-10-07: Pages sí está activo y publicando en `https://derikgm.github.io/adc/`** (con `baseHref: "/adc/"`), así que este apunte ya no aplica.
 - Comprobado con `npm run build`, `npx ng test` (6 tests en `productos.service.spec.ts` y `tienda.page.spec.ts`: respaldo 404, reintento, copy en memoria, corte a los 30 s, y render de la vista previa y de la página `/tienda`) y `ng serve` (responden `/`, `/tienda` y `/assets/images/hero.jpg`).
 
 - [x] 2.1 Agregar sping al sitio mientras carga la tienda.
@@ -76,7 +76,7 @@ Debido a que el servidor esta alojado en un sitio de hosting que suele tener una
 
 3. resultado (hecho): `src/app/interceptors/timeout.interceptor.ts` aplica un `timeout(30000)` a TODAS las peticiones de `HttpClient`; se registra una sola vez en `app.config.ts` con `provideHttpClient(withInterceptors([timeoutInterceptor]))`, así que cubre el presente y lo futuro. Al agotarse, la vista muestra «El servidor tardó más de 30 segundos en responder. Inténtalo de nuevo.» con su botón de reintento (comprobado en el test de `productos.service.spec.ts`).
 
--[] 4. Quitar el botón «Cotizar» del header y poner un botón flotante de WhatsApp:
+- [x] 4. Quitar el botón «Cotizar» del header y poner un botón flotante de WhatsApp:
 
 4. contexto:
 Petición nueva del cliente (no estaba en la lista original).
