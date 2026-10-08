@@ -1,6 +1,7 @@
 import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CargandoComponent } from '../cargando.component';
+import { EstadoCatalogoComponent } from '../estado-catalogo.component';
 import { ProductoCardComponent } from '../producto-card.component';
 import { ProductosService } from '../../services/productos.service';
 
@@ -14,7 +15,7 @@ const VISTA_PREVIA = 5;
 @Component({
   selector: 'app-productos-preview',
   standalone: true,
-  imports: [RouterLink, CargandoComponent, ProductoCardComponent],
+  imports: [RouterLink, CargandoComponent, EstadoCatalogoComponent, ProductoCardComponent],
   template: `
     <section id="tienda" class="scroll-mt-16 bg-navy-950 py-20">
       <div class="container-adc">
@@ -36,18 +37,10 @@ const VISTA_PREVIA = 5;
         @if (productos.cargando()) {
           <app-cargando />
         } @else if (productos.error()) {
-          <div
-            class="mx-auto max-w-xl rounded-xl border border-navy-800 bg-navy-900/60 p-6 text-center"
-          >
-            <p class="text-navy-200">{{ productos.error() }}</p>
-            <button
-              type="button"
-              (click)="productos.cargar()"
-              class="mt-4 rounded-md bg-gold-300 px-5 py-2 font-semibold text-navy-950 transition-colors hover:bg-gold-400"
-            >
-              Reintentar
-            </button>
-          </div>
+          <app-estado-catalogo
+            [error]="productos.error()"
+            (reintentar)="productos.cargar()"
+          />
         } @else if (vistaPrevia().length) {
           <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
             @for (producto of vistaPrevia(); track producto.id) {
@@ -55,9 +48,7 @@ const VISTA_PREVIA = 5;
             }
           </div>
         } @else {
-          <p class="text-center text-navy-300">
-            Todavía no hay productos publicados.
-          </p>
+          <app-estado-catalogo [vacio]="true" />
         }
 
         <div class="mt-10 text-center">
