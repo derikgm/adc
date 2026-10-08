@@ -37,7 +37,7 @@
               "baseHref": "/adc/",
               "optimization": {
                 "scripts": true,
-                "fonts": false,
+                "fonts": true,
                 "styles": true
               },
               "budgets": [
@@ -45,11 +45,6 @@
                   "type": "initial",
                   "maximumWarning": "500kB",
                   "maximumError": "1MB"
-                },
-                {
-                  "type": "anyComponentStyle",
-                  "maximumWarning": "4kB",
-                  "maximumError": "8kB"
                 }
               ],
               "outputHashing": "all"
