@@ -1,10 +1,11 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, effect, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CargandoComponent } from '../components/cargando.component';
 import { EstadoCatalogoComponent } from '../components/estado-catalogo.component';
 import { ProductoCardComponent } from '../components/producto-card.component';
-import { Producto } from '../models/productos';
+import { Producto, todosLosProductos } from '../models/productos';
 import { ProductosService } from '../services/productos.service';
+import { SeoService, URL_SITIO } from '../services/seo.service';
 
 /**
  * Página `/tienda`: catálogo completo agrupado por secciones, con una barra
@@ -123,7 +124,40 @@ export class TiendaPageComponent {
   );
 
   constructor() {
+    const seo = inject(SeoService);
     this.productos.cargar();
+
+    // SEO de la tienda: cuando el catálogo llega (o se refresca), se actualizan
+    // el canonical, el Open Graph y el JSON-LD de tipo ItemList.
+    effect(() => {
+      const catalogo = this.productos.catalogo();
+      seo.fijar({
+        titulo: 'Tienda · ADC',
+        descripcion:
+          'Todos los productos de ADC: material eléctrico, herramientas, paneles solares y más, con precios y moneda. Agrupados por secciones.',
+        ruta: '/tienda',
+        imagen: `${URL_SITIO}/assets/images/hero.jpg`,
+        jsonLd: catalogo
+          ? ({
+              '@context': 'https://schema.org',
+              '@type': 'ItemList',
+              name: 'Tienda · ADC',
+              itemListElement: todosLosProductos(catalogo).map(
+                (producto, posicion) => ({
+                  '@type': 'Product',
+                  position: posicion + 1,
+                  name: producto.nombre,
+                  offers: {
+                    '@type': 'Offer',
+                    price: producto.precio,
+                    priceCurrency: producto.moneda,
+                  },
+                }),
+              ),
+            } satisfies object)
+          : undefined,
+      });
+    });
   }
 
   productosDe(seccion: string): Producto[] {
