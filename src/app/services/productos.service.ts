@@ -15,6 +15,9 @@ const MENSAJE_TIEMPO_AGOTADO =
   'El servidor tardó más de 30 segundos en responder. Inténtalo de nuevo.';
 const MENSAJE_ERROR = 'No se pudieron obtener los datos del servidor.';
 
+/** Milisegundos que aguanta el catálogo en memoria antes de volver a pedirlo. */
+const TIEMPO_DE_VIDA = 60_000;
+
 /**
  * Carga y guarda el catálogo de la tienda.
  *
@@ -37,6 +40,9 @@ export class ProductosService {
   readonly cargando = signal(false);
   readonly error = signal<string | null>(null);
 
+  /** Instante (Date.now()) en que se guardó el catálogo que hay en memoria. */
+  private cargadoEn = 0;
+
   /** Primeros `n` productos de todo el catálogo, para la vista previa del home. */
   primerosProductos(n: number): Producto[] {
     const catalogo = this.catalogo();
@@ -44,12 +50,14 @@ export class ProductosService {
   }
 
   /**
-   * (Re)carga el catálogo. No hace nada si ya está cargado o si hay una
-   * petición en curso, así que cada vista lo puede llamar en su constructor
-   * sin duplicar peticiones.
+   * (Re)carga el catálogo. No hace nada si hay una petición en curso, o si ya
+   * está cargado y es fresco (menos de un minuto): así cada vista lo puede
+   * llamar en su constructor sin duplicar peticiones, y una vuelta posterior
+   * a `/tienda` refresca lo que el panel haya cambiado.
    */
   cargar(): void {
-    if (this.cargando() || this.catalogo()) return;
+    if (this.cargando()) return;
+    if (this.catalogo() && Date.now() - this.cargadoEn < TIEMPO_DE_VIDA) return;
 
     this.cargando.set(true);
     this.error.set(null);
@@ -57,6 +65,7 @@ export class ProductosService {
     this.pedirCatalogo().subscribe({
       next: (catalogo) => {
         this.catalogo.set(catalogo);
+        this.cargadoEn = Date.now();
         this.cargando.set(false);
       },
       error: (error) => {

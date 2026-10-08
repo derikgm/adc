@@ -60,7 +60,7 @@ describe('ProductosService', () => {
     http.expectOne(`${SERVIDOR}/adc/productos`);
   });
 
-  it('la segunda vista no vuelve a pedir nada', () => {
+  it('la segunda vista no vuelve a pedir nada (el catálogo es fresco)', () => {
     service.cargar();
     http
       .expectOne(`${SERVIDOR}/adc/productos`)
@@ -83,6 +83,57 @@ describe('ProductosService', () => {
     service.cargar();
     http.expectNone(`${SERVIDOR}/adc/productos`);
     expect(service.primerosProductos(5)[0].moneda).toBe('USD');
+  });
+
+  it('pasado un minuto, la próxima llamada vuelve a pedir el catálogo', () => {
+    vi.useFakeTimers();
+    try {
+      service.cargar();
+      http.expectOne(`${SERVIDOR}/adc/productos`).flush({
+        secciones: [{ id: 1, nombre: 'luz' }],
+        productos: [
+          {
+            id: 2,
+            nombre: 'Foco',
+            precio: 10,
+            moneda: 'USD',
+            imagen_url: null,
+            seccion: 'luz',
+            seccion_id: 1,
+          },
+        ],
+      });
+
+      // Recién cargado: aún fresco, no se vuelve a pedir.
+      service.cargar();
+      http.expectNone(`${SERVIDOR}/adc/productos`);
+
+      // Con el TTL (60 s) superado, la llamada sí refresca.
+      vi.advanceTimersByTime(60_001);
+      service.cargar();
+      expect(service.cargando()).toBe(true);
+      http
+        .expectOne(`${SERVIDOR}/adc/productos`)
+        .flush({
+          secciones: [{ id: 1, nombre: 'luz' }],
+          productos: [
+            {
+              id: 3,
+              nombre: 'Foco LED',
+              precio: 12,
+              moneda: 'CUP',
+              imagen_url: null,
+              seccion: 'luz',
+              seccion_id: 1,
+            },
+          ],
+        });
+
+      expect(service.cargando()).toBe(false);
+      expect(service.primerosProductos(5)[0].nombre).toBe('Foco LED');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('corta la petición a los 30 segundos y lo cuenta en el mensaje', () => {

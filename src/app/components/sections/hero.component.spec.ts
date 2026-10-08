@@ -63,7 +63,13 @@ describe('Hero', () => {
     const enlaces = [...panel.querySelectorAll('a')].map(
       (a) => a.getAttribute('href') ?? '',
     );
-    expect(enlaces).toContain('#instalaciones');
+    // «Ver instalaciones» usa el router con fragment, igual que el header
+    // (no un href="#…" nativo), y la tienda enlaza a su ruta.
+    const botonInstalaciones = enlaces.find((href) =>
+      href.includes('instalaciones'),
+    );
+    expect(botonInstalaciones).toBeTruthy();
+    expect(botonInstalaciones).not.toBe('#instalaciones');
     expect(enlaces).toContain('/tienda');
   });
 });

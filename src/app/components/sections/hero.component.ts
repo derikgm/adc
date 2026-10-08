@@ -46,7 +46,8 @@ import { RouterLink } from '@angular/router';
           </p>
           <div class="mt-8 flex flex-wrap gap-3">
             <a
-              href="#instalaciones"
+              routerLink="/"
+              fragment="instalaciones"
               class="rounded-md bg-gold-300 px-6 py-3 font-semibold text-navy-950 transition-colors hover:bg-gold-400"
             >
               Ver instalaciones

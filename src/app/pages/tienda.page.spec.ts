@@ -81,7 +81,19 @@ describe('Vistas de la tienda', () => {
     expect(
       [...raiz.querySelectorAll('h2')].map((h) => h.textContent?.trim()),
     ).toEqual(['equipos', 'aseo']);
-    expect(raiz.querySelector('nav a[href="#seccion-equipos"]')).toBeTruthy();
+
+    // Los chips usan el router con fragment, como el header, y el ancla lleva
+    // el id del servidor para que dos nombres que se normalizan igual
+    // («Aseo»/«aseo») no colisionen.
+    const chipEquipos = raiz.querySelector(
+      'nav a[href="/tienda#seccion-equipos-1"]',
+    );
+    expect(chipEquipos).toBeTruthy();
+    // Sin ancla nativa: ya no queda ningún href="#seccion-…".
+    expect(raiz.querySelector('nav a[href="#seccion-equipos"]')).toBeNull();
+    expect(raiz.querySelector('[id="seccion-equipos-1"]')).toBeTruthy();
+    expect(raiz.querySelector('[id="seccion-aseo-2"]')).toBeTruthy();
+
     expect(raiz.textContent).toContain('Extintor');
     expect(raiz.textContent).toContain('8 USD');
   });

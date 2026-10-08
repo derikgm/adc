@@ -7,6 +7,12 @@ import { Producto, todosLosProductos } from '../models/productos';
 import { ProductosService } from '../services/productos.service';
 import { SeoService, URL_SITIO } from '../services/seo.service';
 
+/** Sección con el id con el que el servidor la distingue (para las anclas). */
+interface SeccionConId {
+  nombre: string;
+  id: number | null;
+}
+
 /**
  * Página `/tienda`: catálogo completo agrupado por secciones, con una barra
  * de acceso rápido a cada sección.
@@ -65,12 +71,13 @@ import { SeoService, URL_SITIO } from '../services/seo.service';
             aria-label="Secciones del catálogo"
           >
             <div class="container-adc flex gap-2 overflow-x-auto py-3">
-              @for (seccion of secciones(); track seccion) {
+              @for (seccion of secciones(); track seccion.nombre) {
                 <a
-                  [href]="'#' + idSeccion(seccion)"
+                  [routerLink]="'/tienda'"
+                  [fragment]="idSeccion(seccion)"
                   class="shrink-0 rounded-full border border-navy-700 px-4 py-1.5 text-sm font-medium text-navy-100 capitalize transition-colors hover:border-gold-300 hover:text-gold-300"
                 >
-                  {{ seccion }}
+                  {{ seccion.nombre }}
                 </a>
               }
             </div>
@@ -78,15 +85,15 @@ import { SeoService, URL_SITIO } from '../services/seo.service';
         }
 
         <div class="container-adc mt-8">
-          @for (seccion of secciones(); track seccion) {
+          @for (seccion of secciones(); track seccion.nombre) {
             <div class="mb-12 scroll-mt-36" [id]="idSeccion(seccion)">
               <h2 class="mb-4 text-2xl font-bold text-white capitalize">
-                {{ seccion }}
+                {{ seccion.nombre }}
               </h2>
 
-              @if (productosDe(seccion).length) {
+              @if (productosDe(seccion.nombre).length) {
                 <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                  @for (producto of productosDe(seccion); track producto.id) {
+                  @for (producto of productosDe(seccion.nombre); track producto.id) {
                     <app-producto-card [producto]="producto" />
                   }
                 </div>
@@ -119,9 +126,18 @@ import { SeoService, URL_SITIO } from '../services/seo.service';
 export class TiendaPageComponent {
   readonly productos = inject(ProductosService);
 
-  readonly secciones = computed(
-    () => this.productos.catalogo()?.secciones ?? [],
-  );
+  /** Secciones en orden del servidor, con el id con el que distingue cada una. */
+  readonly secciones = computed<SeccionConId[]>(() => {
+    const catalogo = this.productos.catalogo();
+    if (!catalogo) return [];
+
+    return catalogo.secciones.map((nombre) => ({
+      nombre,
+      // El catálogo agrupa por nombre; cualquier producto del grupo sirve para
+      // recuperar el id (dos secciones con el mismo nombre comparten id).
+      id: catalogo.productos[nombre]?.[0]?.seccion_id ?? null,
+    }));
+  });
 
   constructor() {
     const seo = inject(SeoService);
@@ -166,16 +182,18 @@ export class TiendaPageComponent {
 
   /**
    * Identificador de ancla de la sección: en minúsculas, sin acentos y sin
-   * espacios, para que el chip funcione igual con «aseo» o «Artículos de aseo».
+   * espacios, con el id del servidor al final. El sufijo `-id` evita que dos
+   * secciones «Aseo» y «aseo» (que se normalizan igual) compartan ancla.
    */
-  idSeccion(seccion: string): string {
-    const limpio = seccion
+  idSeccion(seccion: SeccionConId): string {
+    const limpio = seccion.nombre
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
 
-    return `seccion-${limpio}`;
+    const base = `seccion-${limpio}`;
+    return seccion.id == null ? base : `${base}-${seccion.id}`;
   }
 }

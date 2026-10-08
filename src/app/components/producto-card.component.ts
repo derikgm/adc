@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, effect, input, signal } from '@angular/core';
 import { Producto } from '../models/productos';
 
 /**
@@ -8,6 +8,10 @@ import { Producto } from '../models/productos';
  * el cliente sepa de qué está hablando, y cada moneda se pinta con un color:
  * CUP con el dorado de la marca y todo lo demás (USD y monedas desconocidas)
  * con el azul eléctrico del logo (todo.md, punto 2.2).
+ *
+ * Si la imagen falla (URL caducada o servidor caído), se sustituye por el
+ * mismo placeholder que usa un producto sin foto, para no enseñar el icono
+ * roto del navegador.
  */
 @Component({
   selector: 'app-producto-card',
@@ -16,19 +20,20 @@ import { Producto } from '../models/productos';
     <article
       class="group flex flex-col overflow-hidden rounded-xl border border-navy-800 bg-navy-900/60 transition-all hover:-translate-y-1 hover:border-gold-500/60"
     >
-      @if (producto().imagen_url) {
+      @if (mostrarImagen()) {
         <div class="aspect-[4/3] overflow-hidden bg-navy-950">
           <img
-            [src]="producto().imagen_url"
+            [src]="producto().imagen_url ?? undefined"
             [alt]="producto().nombre"
             loading="lazy"
             decoding="async"
+            (error)="sustituirPorPlaceholder()"
             class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         </div>
       } @else {
-        <!-- Sin imagen: hueco del mismo tamaño para que la cuadrícula no se
-             desalinee, con el rayo del logo de fondo. -->
+        <!-- Sin imagen (o imagen rota): hueco del mismo tamaño para que la
+             cuadrícula no se desalinee, con el rayo del logo de fondo. -->
         <div class="grid aspect-[4/3] place-items-center bg-navy-950">
           <svg
             class="h-10 w-10 text-navy-800"
@@ -61,4 +66,24 @@ export class ProductoCardComponent {
 
   /** CUP → dorado de la marca; el resto (USD y desconocidas) → azul del logo. */
   readonly esCup = computed(() => this.producto().moneda === 'CUP');
+
+  private readonly urlImagen = computed(() => this.producto().imagen_url);
+  private readonly imagenFallida = signal(false);
+
+  /** Sigue pintando la foto solo si hay URL y no ha fallado al cargar. */
+  readonly mostrarImagen = computed(
+    () => Boolean(this.urlImagen()) && !this.imagenFallida(),
+  );
+
+  constructor() {
+    // Si cambia la URL (otro producto o catálogo refrescado), se reintenta.
+    effect(() => {
+      this.urlImagen();
+      this.imagenFallida.set(false);
+    });
+  }
+
+  sustituirPorPlaceholder(): void {
+    this.imagenFallida.set(true);
+  }
 }
