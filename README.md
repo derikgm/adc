@@ -33,8 +33,9 @@ navegador pediría los `.js` en la raíz del sitio (`derikgm.github.io/main-….
 GitHub Pages devolvería su 404 como `text/html` y el navegador bloquearía el módulo
 con *"tipo MIME no permitido"*.
 
-La app usa rutas con hash (`withHashLocation()`), así que no necesita un `404.html`
-de respaldo para rutas profundas; aun así `angular-cli-ghpages` lo genera.
+La app usa rutas con path (sin `#`): el home vive en `/` y la tienda en `/tienda`.
+GitHub Pages devuelve 404 en las rutas profundas abiertas directamente; el
+`404.html` de respaldo que genera `angular-cli-ghpages` mitiga ese problema.
 
 > ⚠️ Nunca publiques una carpeta `dist/` vieja: `npm run deploy` reconstruye desde el
 > código actual. Si quieres estar seguro, borra `dist/` antes (`rm -rf dist`).
@@ -55,20 +56,36 @@ assets/images/            # ORIGINALES del usuario (no se tocan)
 
 public/                   # favicon
 src/
-├── app/
-│   ├── app.ts                      # Shell raíz
-│   ├── app.config.ts
-│   ├── app.routes.ts
-│   └── components/
-│       ├── header.component.ts
-│       ├── footer.component.ts
-│       └── sections/
-│           ├── hero.component.ts
-│           ├── instalaciones.component.ts
-│           └── placeholder.component.ts
 ├── assets/
 │   └── images/            # imágenes optimizadas para web (las que usa la app)
-└── styles.css             # tema de color (@theme)
+├── index.html            # shell HTML (Montserrat + meta)
+├── main.ts               # arranque de la app
+├── styles.css            # tema de color (@theme), utilidades y cinta
+└── app/
+    ├── app.ts                      # Shell raíz: skip-link + header + router-outlet + footer
+    ├── app.config.ts               # proveedores (router, http, timeout)
+    ├── app.routes.ts               # rutas con path: /, /tienda y ** → /
+    ├── components/
+    │   ├── header.component.ts     # menú fijo (escritorio y móvil)
+    │   ├── footer.component.ts
+    │   ├── whatsapp-button.component.ts  # botón flotante de WhatsApp
+    │   ├── cargando.component.ts   # spinner de espera al servidor
+    │   ├── producto-card.component.ts
+    │   └── sections/
+    │       ├── hero.component.ts
+    │       ├── instalaciones.component.ts  # cinta continua de fotos de brigada
+    │       ├── productos-preview.component.ts  # 5 primeros productos del home
+    │       ├── servicios.component.ts
+    │       └── contacto.component.ts
+    ├── pages/
+    │   ├── home.page.ts            # secciones del inicio, en orden
+    │   └── tienda.page.ts          # catálogo completo agrupado por secciones
+    ├── services/
+    │   └── productos.service.ts    # GET /adc/productos (único servicio)
+    ├── models/
+    │   └── productos.ts            # tipos y normalización del catálogo
+    └── interceptors/
+        └── timeout.interceptor.ts  # máximo de 30 s para las peticiones
 ```
 
 ## Imágenes
@@ -114,5 +131,4 @@ Uso: `bg-navy-950`, `text-gold-300`, `bg-ink`, `border-navy-800/60`.
 > **Nota sobre el logo:** `logo.jpg` tiene fondo negro puro. El header, hero y
 > footer usan `bg-ink` para que se funda con el fondo. No aplicar
 > `mix-blend-mode: screen` al logo: apagaría los tonos navy (`#233961`,
-> `#0a162c`) que son parte del diseño.
-"# adc" 
+> `#0a162c`) que son parte del diseño. 

@@ -8,8 +8,8 @@ import { timeoutInterceptor } from './interceptors/timeout.interceptor';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    // Rutas con path (sin `#`) + anclas: al entrar con `/#contacto` o al pulsar
-    // un chip de sección, la página hace scroll hasta ese punto.
+    // Rutas con path (sin `#`) + anclas: al pulsar un chip de sección o llegar
+    // con #contacto, la página hace scroll hasta ese punto.
     provideRouter(
       routes,
       withInMemoryScrolling({
