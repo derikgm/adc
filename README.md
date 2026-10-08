@@ -46,6 +46,12 @@ GitHub Pages devuelve 404 en las rutas profundas abiertas directamente; el
 npm test
 ```
 
+## Herramientas
+
+- **Prettier**: configurado en `.prettierrc` (estilo del código actual). Formatea con `npm run format`.
+- **CI**: `.github/workflows/ci.yml` ejecuta `npm ci && npm run build && CI=true npx ng test`.
+- **ESLint**: pendiente de decisión del usuario (no instalar por ahora).
+
 ## Estructura
 
 ```
