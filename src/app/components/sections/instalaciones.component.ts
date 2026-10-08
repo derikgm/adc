@@ -13,9 +13,6 @@ interface Slide {
   alt: string;
 }
 
-/** Segundos que tarda un grupo de imágenes en recorrer la cinta. */
-const SEGUNDOS_POR_GRUPO = 45;
-
 @Component({
   selector: 'app-instalaciones',
   standalone: true,

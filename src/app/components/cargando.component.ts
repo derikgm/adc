@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component } from '@angular/core';
 
 /**
  * Spinner que se muestra mientras la página espera al servidor.
@@ -37,10 +37,8 @@ import { Component, input } from '@angular/core';
           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
         />
       </svg>
-      <p class="text-sm font-medium text-navy-200">{{ mensaje() }}</p>
+      <p class="text-sm font-medium text-navy-200">Obteniendo datos del servidor…</p>
     </div>
   `,
 })
-export class CargandoComponent {
-  readonly mensaje = input('Obteniendo datos del servidor…');
-}
+export class CargandoComponent {}

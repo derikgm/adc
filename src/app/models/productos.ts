@@ -20,7 +20,6 @@ export interface ProductoServidor {
   nombre: string;
   precio: number;
   imagen_url?: string | null;
-  imagen_bytes?: number | null;
   moneda?: string | null;
   /**
    * Sección del producto. `GET /adc/productos` manda el nombre (`"electronico"`)
