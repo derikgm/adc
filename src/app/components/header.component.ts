@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, HostListener, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 interface ItemMenu {
@@ -13,7 +13,7 @@ interface ItemMenu {
   imports: [RouterLink],
   template: `
     <header class="fixed inset-x-0 top-0 z-50 bg-ink/95 backdrop-blur border-b border-navy-800">
-      <nav class="container-adc flex h-16 items-center justify-between">
+      <nav class="container-adc flex h-16 items-center justify-between" aria-label="Principal">
         <!-- Marca -->
         <a routerLink="/" fragment="inicio" class="flex items-center gap-3">
           <img
@@ -48,9 +48,11 @@ interface ItemMenu {
         <button
           type="button"
           (click)="toggleMenu()"
-          class="grid h-10 w-10 place-items-center rounded-md text-white md:hidden"
+          aria-haspopup="true"
           [attr.aria-expanded]="menuOpen()"
-          aria-label="Abrir menú"
+          [attr.aria-controls]="menuOpen() ? 'menu-movil' : null"
+          [attr.aria-label]="menuOpen() ? 'Cerrar menú' : 'Abrir menú'"
+          class="grid h-10 w-10 place-items-center rounded-md text-white md:hidden"
         >
           @if (menuOpen()) {
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -66,7 +68,11 @@ interface ItemMenu {
 
       <!-- Menú móvil -->
       @if (menuOpen()) {
-        <div class="border-t border-navy-800 bg-ink md:hidden">
+        <nav
+          id="menu-movil"
+          class="border-t border-navy-800 bg-ink md:hidden"
+          aria-label="Menú móvil"
+        >
           <ul class="container-adc flex flex-col gap-1 py-4 text-navy-100">
             @for (item of menuItems; track item.label) {
               <li>
@@ -80,7 +86,7 @@ interface ItemMenu {
               </li>
             }
           </ul>
-        </div>
+        </nav>
       }
     </header>
   `,
@@ -99,6 +105,12 @@ export class HeaderComponent {
     { destino: '/', fragmento: 'instalaciones', label: 'Instalaciones' },
     { destino: '/', fragmento: 'contacto', label: 'Contacto' },
   ];
+
+  /** Escape cierra el menú móvil esté abierto o no (y evita el cierre doble). */
+  @HostListener('document:keydown.escape')
+  cerrarConEscape(): void {
+    this.closeMenu();
+  }
 
   toggleMenu() {
     this.menuOpen.update((value) => !value);

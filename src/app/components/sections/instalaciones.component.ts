@@ -20,7 +20,7 @@ const SEGUNDOS_POR_GRUPO = 45;
   selector: 'app-instalaciones',
   standalone: true,
   template: `
-    <section id="instalaciones" class="bg-navy-900 py-20">
+    <section id="instalaciones" class="scroll-mt-16 bg-navy-900 py-20">
       <div class="container-adc">
         <!-- Encabezado -->
         <div class="mb-10 text-center">

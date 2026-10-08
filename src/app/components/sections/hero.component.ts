@@ -6,7 +6,7 @@ import { RouterLink } from '@angular/router';
   standalone: true,
   imports: [RouterLink],
   template: `
-    <section id="inicio" class="relative overflow-hidden bg-ink">
+    <section id="inicio" class="relative scroll-mt-16 overflow-hidden bg-ink">
       <!-- La foto es el fondo de toda la sección (decorativa: el texto ya
            cuenta qué se ve). object-center deja a los operarios en cuadro
            tanto en pantalla ancha como en móvil. -->

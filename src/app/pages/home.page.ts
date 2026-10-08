@@ -1,7 +1,8 @@
 import { Component } from '@angular/core';
 import { HeroComponent } from '../components/sections/hero.component';
 import { InstalacionesComponent } from '../components/sections/instalaciones.component';
-import { PlaceholderComponent } from '../components/sections/placeholder.component';
+import { ServiciosComponent } from '../components/sections/servicios.component';
+import { ContactoComponent } from '../components/sections/contacto.component';
 import { ProductosPreviewComponent } from '../components/sections/productos-preview.component';
 
 /** Página de inicio: lo que antes pintaba `app.ts` dentro del router-outlet. */
@@ -12,14 +13,15 @@ import { ProductosPreviewComponent } from '../components/sections/productos-prev
     HeroComponent,
     InstalacionesComponent,
     ProductosPreviewComponent,
-    PlaceholderComponent,
+    ServiciosComponent,
+    ContactoComponent,
   ],
   template: `
     <app-hero />
     <app-instalaciones />
     <app-productos-preview />
-    <app-placeholder id="servicios" title="Servicios" />
-    <app-placeholder id="contacto" title="Contacto" />
+    <app-servicios />
+    <app-contacto />
   `,
 })
 export class HomePageComponent {}

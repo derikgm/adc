@@ -16,7 +16,7 @@ const VISTA_PREVIA = 5;
   standalone: true,
   imports: [RouterLink, CargandoComponent, ProductoCardComponent],
   template: `
-    <section id="tienda" class="bg-navy-950 py-20">
+    <section id="tienda" class="scroll-mt-16 bg-navy-950 py-20">
       <div class="container-adc">
         <div class="mb-10 text-center">
           <p

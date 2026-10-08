@@ -63,6 +63,7 @@ import { ProductosService } from '../services/productos.service';
           <!-- Acceso rápido a cada sección; se queda pegado bajo el header. -->
           <nav
             class="sticky top-16 z-40 mt-8 border-y border-navy-800 bg-navy-950/95 backdrop-blur"
+            aria-label="Secciones del catálogo"
           >
             <div class="container-adc flex gap-2 overflow-x-auto py-3">
               @for (seccion of secciones(); track seccion) {
@@ -102,8 +103,16 @@ import { ProductosService } from '../services/productos.service';
             </p>
           }
 
-          <p class="mb-4 text-center text-sm text-navy-400">
-            ¿Necesitas más información? Contacta con nosotros y te ayudamos.
+          <p class="mb-4 text-center text-sm text-navy-300">
+            ¿Necesitas más información?
+            <a
+              routerLink="/"
+              fragment="contacto"
+              class="text-navy-200 transition-colors hover:text-gold-300"
+            >
+              Contacta con nosotros
+            </a>
+            y te ayudamos.
           </p>
         </div>
       }

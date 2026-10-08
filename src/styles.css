@@ -61,6 +61,14 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Para quien prefiera menos movimiento, se quita el desplazamiento suave y
+   el salto a secciones pasa a ser instantáneo (mismo patrón que la cinta). */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 body {
   font-family: var(--font-sans);
   background-color: var(--color-navy-950);

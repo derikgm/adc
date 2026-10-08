@@ -21,7 +21,10 @@ describe('Hero', () => {
     fixture.detectChanges();
 
     const seccion: HTMLElement = fixture.nativeElement.querySelector('section');
-    expect(seccion.className).toContain('relative overflow-hidden');
+    expect(seccion.className).toContain('relative');
+    expect(seccion.className).toContain('overflow-hidden');
+    // Offset tras el header fijo de 64 px (accesibilidad A-7).
+    expect(seccion.className).toContain('scroll-mt-16');
 
     const foto: HTMLImageElement | null = seccion.querySelector(':scope > img');
     expect(foto).toBeTruthy();

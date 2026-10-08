@@ -17,7 +17,7 @@ import { Component } from '@angular/core';
           <span class="text-lg font-bold text-white">ADC</span>
         </div>
 
-        <p class="text-sm text-navy-400">
+        <p class="text-sm text-navy-300">
           © {{ currentYear }} ADC. Todos los derechos reservados.
         </p>
       </div>
