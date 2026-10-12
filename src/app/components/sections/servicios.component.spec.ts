@@ -22,7 +22,7 @@ describe('Servicios', () => {
     expect(seccion!.textContent).toContain('Servicios');
     expect(seccion!.textContent).toContain('Instalaciones eléctricas');
     expect(seccion!.textContent).toContain('Brigada de montaje');
-    expect(seccion!.textContent).toContain('Mantenimiento y reparaciones');
-    expect(seccion!.textContent).toContain('Suministro de material eléctrico');
+    expect(seccion!.textContent).toContain('Kits y soluciones a medida');
+    expect(seccion!.textContent).toContain('suministro de material eléctrico');
   });
 });

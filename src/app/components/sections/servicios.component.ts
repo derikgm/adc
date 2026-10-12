@@ -49,6 +49,18 @@ import { Component } from '@angular/core';
             class="rounded-xl border border-navy-800 bg-navy-900/60 p-6 shadow-lg"
           >
             <h3 class="text-xl font-semibold text-white">
+              Kits y soluciones a medida
+            </h3>
+            <p class="mt-2 text-navy-200">
+              Kits completos para su proyecto, asesoría técnica y soluciones
+              adaptadas a sus necesidades, con presupuesto claro y sin sorpresas.
+            </p>
+          </article>
+
+          <!-- <article
+            class="rounded-xl border border-navy-800 bg-navy-900/60 p-6 shadow-lg"
+          >
+            <h3 class="text-xl font-semibold text-white">
               Mantenimiento y reparaciones
             </h3>
             <p class="mt-2 text-navy-200">
@@ -56,10 +68,10 @@ import { Component } from '@angular/core';
               actualización de tableros y sustitución de elementos, para
               garantizar el correcto funcionamiento de su instalación.
             </p>
-          </article>
+          </article> -->
         </div>
 
-        <div class="mt-10 grid gap-6 md:grid-cols-2">
+        <!-- <div class="mt-10 grid gap-6 md:grid-cols-2">
           <article
             class="rounded-xl border border-navy-800 bg-navy-900/60 p-6 shadow-lg"
           >
@@ -72,19 +84,7 @@ import { Component } from '@angular/core';
               dispositivos de protección y más.
             </p>
           </article>
-
-          <article
-            class="rounded-xl border border-navy-800 bg-navy-900/60 p-6 shadow-lg"
-          >
-            <h3 class="text-xl font-semibold text-white">
-              Kits y soluciones a medida
-            </h3>
-            <p class="mt-2 text-navy-200">
-              Kits completos para su proyecto, asesoría técnica y soluciones
-              adaptadas a sus necesidades, con presupuesto claro y sin sorpresas.
-            </p>
-          </article>
-        </div>
+        </div> -->
       </div>
     </section>
   `,
