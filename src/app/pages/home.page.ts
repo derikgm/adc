@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { HeroComponent } from '../components/sections/hero.component';
 import { InstalacionesComponent } from '../components/sections/instalaciones.component';
+import { InstalacionesServiciosComponent } from '../components/sections/instalaciones-servicios.component';
 import { ServiciosComponent } from '../components/sections/servicios.component';
 import { ContactoComponent } from '../components/sections/contacto.component';
 import { ProductosPreviewComponent } from '../components/sections/productos-preview.component';
@@ -13,6 +14,9 @@ import { SeoService, URL_SITIO } from '../services/seo.service';
   imports: [
     HeroComponent,
     InstalacionesComponent,
+    // Los servicios de instalación (tarjetas) van pegados a la cinta de la
+    // brigada: juntos forman la sección «Instalaciones» (todo.md, punto 3).
+    InstalacionesServiciosComponent,
     ProductosPreviewComponent,
     ServiciosComponent,
     ContactoComponent,
@@ -20,6 +24,7 @@ import { SeoService, URL_SITIO } from '../services/seo.service';
   template: `
     <app-hero />
     <app-instalaciones />
+    <app-instalaciones-servicios />
     <app-productos-preview />
     <app-servicios />
     <app-contacto />
