@@ -25,6 +25,7 @@ describe('Modelo de productos', () => {
         precio: 18500,
         imagen_url: null,
         moneda: 'CUP',
+        descripcion: null,
         seccion: 'electronico',
         seccion_id: 4,
       });

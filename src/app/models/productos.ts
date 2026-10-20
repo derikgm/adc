@@ -21,6 +21,8 @@ export interface ProductoServidor {
   precio: number;
   imagen_url?: string | null;
   moneda?: string | null;
+  /** Descripción larga del producto; puede no venir o venir `null`. */
+  descripcion?: string | null;
   /**
    * Sección del producto. `GET /adc/productos` manda el nombre (`"electronico"`)
    * y `GET /delys/dulces` manda la sección entera (`{ id, nombre }`): se
@@ -37,6 +39,8 @@ export interface Producto {
   precio: number;
   imagen_url: string | null;
   moneda: string;
+  /** Descripción larga del producto; `null` si no tiene. */
+  descripcion: string | null;
   /** Nombre de la sección a la que pertenece; `null` si está sin asignar. */
   seccion: string | null;
   /** Id de esa sección, por si hay que enlazar con ella. */
@@ -77,6 +81,10 @@ export function normalizarProducto(bruto: ProductoServidor): Producto {
     precio: Number.isFinite(precio) ? precio : 0,
     imagen_url: bruto.imagen_url || null,
     moneda: moneda || MONEDA_POR_DEFECTO,
+    descripcion:
+      typeof bruto.descripcion === 'string' && bruto.descripcion.trim()
+        ? bruto.descripcion.trim()
+        : null,
     seccion: nombreDeSeccion(bruto.seccion),
     seccion_id: typeof bruto.seccion_id === 'number' ? bruto.seccion_id : null,
   };
