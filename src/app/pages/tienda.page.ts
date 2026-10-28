@@ -2,16 +2,16 @@ import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CargandoComponent } from '../components/cargando.component';
 import { ProductoCardComponent } from '../components/producto-card.component';
-import { Producto } from '../models/productos';
 import { ProductosService } from '../services/productos.service';
 
 /**
- * Página `/tienda`: catálogo completo agrupado por secciones, con una barra
- * de acceso rápido a cada sección.
+ * Página `/tienda`: catálogo completo agrupado por categorías principales y,
+ * dentro de cada una, sus **subcategorías**.
  *
  * El estilo imita a https://elyerromenu.com/: barra de categorías arriba,
  * un título por sección y una cuadrícula de tarjetas con imagen, nombre y
- * precio con su moneda.
+ * precio con su moneda. Las subcategorías se enseñan como un bloque propio
+ * dentro de su categoría, con su ancla para poder enlazarlas.
  */
 @Component({
   selector: 'app-tienda-page',
@@ -36,8 +36,8 @@ import { ProductosService } from '../services/productos.service';
           Todos nuestros productos
         </h1>
         <p class="mt-3 max-w-2xl text-navy-200">
-          Elige una sección para saltar a ella. Cada precio se muestra con su
-          moneda para que no queden dudas.
+          Elige una categoría para saltar a ella. Dentro de cada una verás sus
+          subcategorías y cada precio con su moneda, para que no queden dudas.
         </p>
       </div>
 
@@ -59,39 +59,69 @@ import { ProductosService } from '../services/productos.service';
           </div>
         </div>
       } @else {
-        @if (secciones().length > 1) {
-          <!-- Acceso rápido a cada sección; se queda pegado bajo el header. -->
+        @if (secciones().length > 1 || haySubcategorias()) {
+          <!-- Acceso rápido a categorías y subcategorías; queda pegado bajo el header. -->
           <nav
             class="sticky top-16 z-40 mt-8 border-y border-navy-800 bg-navy-950/95 backdrop-blur"
           >
             <div class="container-adc flex gap-2 overflow-x-auto py-3">
-              @for (seccion of secciones(); track seccion) {
+              @for (seccion of secciones(); track seccion.id) {
                 <a
-                  [href]="'#' + idSeccion(seccion)"
+                  [href]="'#' + idSeccion(seccion.nombre)"
                   class="shrink-0 rounded-full border border-navy-700 px-4 py-1.5 text-sm font-medium text-navy-100 capitalize transition-colors hover:border-gold-300 hover:text-gold-300"
                 >
-                  {{ seccion }}
+                  {{ seccion.nombre }}
                 </a>
+
+                @for (sub of seccion.subsecciones; track sub.id) {
+                  <a
+                    [href]="'#' + idSubcategoria(seccion.nombre, sub.nombre)"
+                    class="shrink-0 rounded-full border border-navy-800 px-3 py-1.5 text-xs text-navy-300 capitalize transition-colors hover:border-gold-300 hover:text-gold-300"
+                  >
+                    ↳ {{ seccion.nombre }} · {{ sub.nombre }}
+                  </a>
+                }
               }
             </div>
           </nav>
         }
 
         <div class="container-adc mt-8">
-          @for (seccion of secciones(); track seccion) {
-            <div class="mb-12 scroll-mt-36" [id]="idSeccion(seccion)">
+          @for (seccion of secciones(); track seccion.id) {
+            <div class="mb-12 scroll-mt-36" [id]="idSeccion(seccion.nombre)">
               <h2 class="mb-4 text-2xl font-bold text-white capitalize">
-                {{ seccion }}
+                {{ seccion.nombre }}
               </h2>
 
-              @if (productosDe(seccion).length) {
+              @if (seccion.productos.length) {
                 <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                  @for (producto of productosDe(seccion); track producto.id) {
+                  @for (producto of seccion.productos; track producto.id) {
                     <app-producto-card [producto]="producto" />
                   }
                 </div>
-              } @else {
-                <p class="text-navy-300">No hay productos en esta sección.</p>
+              }
+
+              @for (sub of seccion.subsecciones; track sub.id) {
+                <div
+                  class="mt-8 scroll-mt-36 border-l-2 border-gold-500/30 pl-4"
+                  [id]="idSubcategoria(seccion.nombre, sub.nombre)"
+                >
+                  <h3 class="mb-3 text-lg font-semibold text-gold-300 capitalize">
+                    {{ sub.nombre }}
+                  </h3>
+
+                  @if (sub.productos.length) {
+                    <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                      @for (producto of sub.productos; track producto.id) {
+                        <app-producto-card [producto]="producto" />
+                      }
+                    </div>
+                  } @else {
+                    <p class="text-sm text-navy-400">
+                      Todavía no hay productos en esta subcategoría.
+                    </p>
+                  }
+                </div>
               }
             </div>
           }
@@ -121,22 +151,30 @@ export class TiendaPageComponent {
     this.productos.cargar();
   }
 
-  productosDe(seccion: string): Producto[] {
-    return this.productos.catalogo()?.productos[seccion] ?? [];
+  /** `true` si alguna categoría tiene subcategorías (para enseñar la barra). */
+  haySubcategorias(): boolean {
+    return this.secciones().some((seccion) => seccion.subsecciones.length > 0);
   }
 
   /**
-   * Identificador de ancla de la sección: en minúsculas, sin acentos y sin
+   * Identificador de ancla de la categoría: en minúsculas, sin acentos y sin
    * espacios, para que el chip funcione igual con «aseo» o «Artículos de aseo».
    */
   idSeccion(seccion: string): string {
-    const limpio = seccion
+    return `seccion-${this.slug(seccion)}`;
+  }
+
+  /** Ancla de una subcategoría, con el nombre de su categoría delante. */
+  idSubcategoria(seccion: string, subcategoria: string): string {
+    return `subcategoria-${this.slug(seccion)}-${this.slug(subcategoria)}`;
+  }
+
+  private slug(texto: string): string {
+    return texto
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
-
-    return `seccion-${limpio}`;
   }
 }

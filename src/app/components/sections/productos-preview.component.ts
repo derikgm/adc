@@ -29,7 +29,8 @@ const VISTA_PREVIA = 5;
           </h2>
           <p class="mx-auto mt-3 max-w-2xl text-navy-200">
             Un vistazo a lo que tenemos disponible. En la tienda completa
-            encontrarás todos los productos, agrupados por secciones.
+            encontrarás todos los productos, agrupados por categorías y
+            subcategorías.
           </p>
         </div>
 

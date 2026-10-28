@@ -84,4 +84,52 @@ describe('Vistas de la tienda', () => {
     expect(raiz.textContent).toContain('Extintor');
     expect(raiz.textContent).toContain('8 USD');
   });
+
+  it('agrupa las subcategorías dentro de su categoría principal', () => {
+    const fixture = TestBed.createComponent(TiendaPageComponent);
+    fixture.detectChanges();
+
+    const raiz: HTMLElement = fixture.nativeElement;
+
+    // Respuesta actual del servidor: productos y secciones con `padre_id`.
+    respondeConSubcategorias();
+    fixture.detectChanges();
+
+    expect(raiz.querySelectorAll('app-producto-card').length).toBe(3);
+    expect(
+      [...raiz.querySelectorAll('h2')].map((h) => h.textContent?.trim()),
+    ).toEqual(['electrodomesticos']);
+
+    // La tarjeta de la subcategoría vive dentro del bloque de su categoría.
+    const subcategoria = raiz.querySelector('#subcategoria-electrodomesticos-neveras');
+    expect(subcategoria).toBeTruthy();
+    expect(
+      subcategoria!.querySelector(':scope > h3')?.textContent?.trim(),
+    ).toBe('neveras');
+    expect(subcategoria?.querySelectorAll('app-producto-card').length).toBe(1);
+    expect(subcategoria?.textContent).toContain('Ventilador de pedestal');
+
+    // La barra deja saltar tanto a la categoría como a la subcategoría.
+    expect(raiz.querySelector('nav a[href="#seccion-electrodomesticos"]')).toBeTruthy();
+    expect(
+      raiz.querySelector(
+        'nav a[href="#subcategoria-electrodomesticos-neveras"]',
+      ),
+    ).toBeTruthy();
+  });
+
+  /** Respuesta actual: una categoría principal con una subcategoría. */
+  function respondeConSubcategorias() {
+    http.expectOne(`${SERVIDOR}/adc/productos`).flush({
+      productos: [
+        { id: 1, nombre: 'Nevera', precio: 250, moneda: 'USD', seccion_id: 3 },
+        { id: 2, nombre: 'Hornilla infrarrojo', precio: 33000, moneda: 'CUP', seccion_id: 3 },
+        { id: 3, nombre: 'Ventilador de pedestal', precio: 31000, moneda: 'CUP', seccion_id: 8 },
+      ],
+      secciones: [
+        { id: 3, nombre: 'electrodomesticos', padre_id: null },
+        { id: 8, nombre: 'neveras', padre_id: 3 },
+      ],
+    });
+  }
 });
