@@ -7,9 +7,10 @@ import {
   normalizarCatalogoADC,
   todosLosProductos,
 } from '../models/productos';
+import { environment } from '../../environments/environment';
 
 /** Dirección del servidor (msf-nestjs). */
-export const SERVIDOR = 'https://derikgm-msf-nestjs.wasmer.app';
+export const SERVIDOR = environment.apiUrl;
 
 const MENSAJE_TIEMPO_AGOTADO =
   'El servidor tardó más de 30 segundos en responder. Inténtalo de nuevo.';
