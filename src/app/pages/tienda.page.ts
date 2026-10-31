@@ -81,7 +81,7 @@ import { SeoService, URL_SITIO } from '../services/seo.service';
         <div class="container-adc mt-8">
           @for (categoria of categorias(); track idSeccion(categoria)) {
             <div class="mb-12 scroll-mt-36" [id]="idSeccion(categoria)">
-              <h2 class="mb-4 text-2xl font-bold text-white capitalize">
+              <h2 class="mb-4 text-center text-3xl font-bold text-white capitalize">
                 {{ categoria.nombre }}
               </h2>
 
