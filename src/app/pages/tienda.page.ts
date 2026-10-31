@@ -3,19 +3,13 @@ import { RouterLink } from '@angular/router';
 import { CargandoComponent } from '../components/cargando.component';
 import { EstadoCatalogoComponent } from '../components/estado-catalogo.component';
 import { ProductoCardComponent } from '../components/producto-card.component';
-import { Producto, todosLosProductos } from '../models/productos';
+import { Categoria, todosLosProductos } from '../models/productos';
 import { ProductosService } from '../services/productos.service';
 import { SeoService, URL_SITIO } from '../services/seo.service';
 
-/** Sección con el id con el que el servidor la distingue (para las anclas). */
-interface SeccionConId {
-  nombre: string;
-  id: number | null;
-}
-
 /**
- * Página `/tienda`: catálogo completo agrupado por secciones, con una barra
- * de acceso rápido a cada sección.
+ * Página `/tienda`: catálogo completo agrupado por categorías, con sus
+ * subcategorías colgando de la suya y una barra de acceso rápido a cada una.
  *
  * El estilo imita a https://elyerromenu.com/: barra de categorías arriba,
  * un título por sección y una cuadrícula de tarjetas con imagen, nombre y
@@ -64,20 +58,20 @@ interface SeccionConId {
           />
         </div>
       } @else {
-        @if (secciones().length > 1) {
-          <!-- Acceso rápido a cada sección; se queda pegado bajo el header. -->
+        @if (categorias().length > 1) {
+          <!-- Acceso rápido a cada categoría; se queda pegado bajo el header. -->
           <nav
             class="sticky top-16 z-40 mt-8 border-y border-navy-800 bg-navy-950/95 backdrop-blur"
             aria-label="Secciones del catálogo"
           >
             <div class="container-adc flex gap-2 overflow-x-auto py-3">
-              @for (seccion of secciones(); track seccion.nombre) {
+              @for (categoria of categorias(); track idSeccion(categoria)) {
                 <a
                   [routerLink]="'/tienda'"
-                  [fragment]="idSeccion(seccion)"
+                  [fragment]="idSeccion(categoria)"
                   class="shrink-0 rounded-full border border-navy-700 px-4 py-1.5 text-sm font-medium text-navy-100 capitalize transition-colors hover:border-gold-300 hover:text-gold-300"
                 >
-                  {{ seccion.nombre }}
+                  {{ categoria.nombre }}
                 </a>
               }
             </div>
@@ -85,25 +79,44 @@ interface SeccionConId {
         }
 
         <div class="container-adc mt-8">
-          @for (seccion of secciones(); track seccion.nombre) {
-            <div class="mb-12 scroll-mt-36" [id]="idSeccion(seccion)">
+          @for (categoria of categorias(); track idSeccion(categoria)) {
+            <div class="mb-12 scroll-mt-36" [id]="idSeccion(categoria)">
               <h2 class="mb-4 text-2xl font-bold text-white capitalize">
-                {{ seccion.nombre }}
+                {{ categoria.nombre }}
               </h2>
 
-              @if (productosDe(seccion.nombre).length) {
+              @if (categoria.productos.length) {
                 <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                  @for (producto of productosDe(seccion.nombre); track producto.id) {
+                  @for (producto of categoria.productos; track producto.id) {
                     <app-producto-card [producto]="producto" />
                   }
                 </div>
-              } @else {
+              } @else if (!categoria.subcategorias.length) {
                 <p class="text-navy-300">No hay productos en esta sección.</p>
+              }
+
+              <!-- Las subcategorías se pintan dentro de su categoría principal. -->
+              @for (sub of categoria.subcategorias; track idSeccion(sub)) {
+                <div class="mt-10 scroll-mt-36" [id]="idSeccion(sub)">
+                  <h3 class="mb-4 text-xl font-semibold text-gold-300 capitalize">
+                    {{ sub.nombre }}
+                  </h3>
+
+                  @if (sub.productos.length) {
+                    <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                      @for (producto of sub.productos; track producto.id) {
+                        <app-producto-card [producto]="producto" />
+                      }
+                    </div>
+                  } @else {
+                    <p class="text-navy-300">No hay productos en esta sección.</p>
+                  }
+                </div>
               }
             </div>
           }
 
-          @if (!secciones().length) {
+          @if (!categorias().length) {
             <app-estado-catalogo [vacio]="true" />
           }
 
@@ -126,18 +139,10 @@ interface SeccionConId {
 export class TiendaPageComponent {
   readonly productos = inject(ProductosService);
 
-  /** Secciones en orden del servidor, con el id con el que distingue cada una. */
-  readonly secciones = computed<SeccionConId[]>(() => {
-    const catalogo = this.productos.catalogo();
-    if (!catalogo) return [];
-
-    return catalogo.secciones.map((nombre) => ({
-      nombre,
-      // El catálogo agrupa por nombre; cualquier producto del grupo sirve para
-      // recuperar el id (dos secciones con el mismo nombre comparten id).
-      id: catalogo.productos[nombre]?.[0]?.seccion_id ?? null,
-    }));
-  });
+  /** Categorías en el orden del servidor, cada una con sus subcategorías dentro. */
+  readonly categorias = computed<Categoria[]>(
+    () => this.productos.catalogo()?.categorias ?? [],
+  );
 
   constructor() {
     const seo = inject(SeoService);
@@ -176,16 +181,13 @@ export class TiendaPageComponent {
     });
   }
 
-  productosDe(seccion: string): Producto[] {
-    return this.productos.catalogo()?.productos[seccion] ?? [];
-  }
-
   /**
-   * Identificador de ancla de la sección: en minúsculas, sin acentos y sin
-   * espacios, con el id del servidor al final. El sufijo `-id` evita que dos
-   * secciones «Aseo» y «aseo» (que se normalizan igual) compartan ancla.
+   * Identificador de ancla de la categoría (o subcategoría): en minúsculas, sin
+   * acentos y sin espacios, con el id del servidor al final. El sufijo `-id`
+   * evita que dos secciones «Aseo» y «aseo» (que se normalizan igual) compartan
+   * ancla.
    */
-  idSeccion(seccion: SeccionConId): string {
+  idSeccion(seccion: Categoria): string {
     const limpio = seccion.nombre
       .toLowerCase()
       .normalize('NFD')

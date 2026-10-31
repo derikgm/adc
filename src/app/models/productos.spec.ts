@@ -109,4 +109,75 @@ describe('Modelo de productos', () => {
       expect(todosLosProductos(catalogo).map((p) => p.nombre)).toEqual(['A1', 'A2', 'B1']);
     });
   });
+
+  describe('categorias con subcategorías', () => {
+    const CATALOGO_ANIDADO = {
+      secciones: [
+        { id: 1, nombre: 'electronico', padre_id: null },
+        { id: 2, nombre: 'neveras', padre_id: 1 },
+        { id: 3, nombre: 'ventiladores', padre_id: 1 },
+      ],
+      productos: [
+        { id: 1, nombre: 'Cable', precio: 5, moneda: 'CUP', seccion: 'electronico', seccion_id: 1 },
+        { id: 2, nombre: 'Nevera No Frost', precio: 900, moneda: 'CUP', seccion: 'neveras', seccion_id: 2 },
+        { id: 3, nombre: 'Ventilador', precio: 20, moneda: 'USD', seccion: 'ventiladores', seccion_id: 3 },
+      ],
+    };
+
+    it('cuelga cada subcategoría de su categoría, sin subir productos al padre', () => {
+      const [electronico] = normalizarCatalogoADC(CATALOGO_ANIDADO).categorias;
+
+      expect(electronico.nombre).toBe('electronico');
+      expect(electronico.productos.map((p) => p.nombre)).toEqual(['Cable']);
+      expect(electronico.subcategorias.map((s) => s.nombre)).toEqual(['neveras', 'ventiladores']);
+      expect(electronico.subcategorias[0].productos.map((p) => p.nombre)).toEqual([
+        'Nevera No Frost',
+      ]);
+      expect(electronico.subcategorias[1].productos.map((p) => p.nombre)).toEqual(['Ventilador']);
+    });
+
+    it('pinta la categoría aunque no tenga productos propios', () => {
+      const sinProductosPropios = {
+        ...CATALOGO_ANIDADO,
+        productos: CATALOGO_ANIDADO.productos.filter((p) => p.seccion !== 'electronico'),
+      };
+      const catalogo = normalizarCatalogoADC(sinProductosPropios);
+
+      // «electronico» sigue ahí porque es el contenedor de sus subcategorías.
+      expect(catalogo.secciones).toEqual(['electronico', 'neveras', 'ventiladores']);
+      expect(catalogo.categorias.map((c) => c.nombre)).toEqual(['electronico']);
+      expect(catalogo.categorias[0].productos).toEqual([]);
+    });
+
+    it('trata como raíz lo que cuelga de una sección que no está en la lista', () => {
+      const catalogo = normalizarCatalogoADC({
+        secciones: [{ id: 2, nombre: 'neveras', padre_id: 999 }],
+        productos: [
+          { id: 2, nombre: 'Nevera No Frost', precio: 900, moneda: 'CUP', seccion: 'neveras', seccion_id: 2 },
+        ],
+      });
+
+      expect(catalogo.categorias.map((c) => c.nombre)).toEqual(['neveras']);
+      expect(catalogo.categorias[0].subcategorias).toEqual([]);
+    });
+
+    it('se queda en una lista cuando el servidor no manda padre_id', () => {
+      // Respold heredado y `/delys/dulces`: no hay árbol que armar.
+      const catalogo = normalizarCatalogoADC({
+        secciones: [
+          { id: 1, nombre: 'electronico' },
+          { id: 2, nombre: 'neveras' },
+          { id: 3, nombre: 'ventiladores' },
+        ],
+        productos: CATALOGO_ANIDADO.productos,
+      });
+
+      expect(catalogo.categorias.map((c) => c.nombre)).toEqual([
+        'electronico',
+        'neveras',
+        'ventiladores',
+      ]);
+      expect(catalogo.categorias.every((c) => c.subcategorias.length === 0)).toBe(true);
+    });
+  });
 });

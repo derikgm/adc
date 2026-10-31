@@ -136,4 +136,57 @@ describe('Vistas de la tienda', () => {
     ).toEqual(['equipos', 'Sin sección']);
     expect(raiz.textContent).toContain('Sin clasificar');
   });
+
+  it('pinta las subcategorías anidadas dentro de su categoría principal', () => {
+    const fixture = TestBed.createComponent(TiendaPageComponent);
+    fixture.detectChanges();
+
+    http.expectOne(`${SERVIDOR}/adc/productos`).flush({
+      secciones: [
+        { id: 1, nombre: 'electronico', padre_id: null },
+        { id: 2, nombre: 'neveras', padre_id: 1 },
+        { id: 3, nombre: 'ventiladores', padre_id: 1 },
+        { id: 4, nombre: 'aseo', padre_id: null },
+      ],
+      productos: [
+        { id: 1, nombre: 'Cable', precio: 5, imagen_url: null, moneda: 'CUP', seccion: 'electronico', seccion_id: 1 },
+        { id: 2, nombre: 'Nevera No Frost', precio: 900, imagen_url: null, moneda: 'CUP', seccion: 'neveras', seccion_id: 2 },
+        { id: 3, nombre: 'Ventilador', precio: 20, imagen_url: null, moneda: 'USD', seccion: 'ventiladores', seccion_id: 3 },
+        { id: 4, nombre: 'Extintor', precio: 8, imagen_url: null, moneda: 'USD', seccion: 'aseo', seccion_id: 4 },
+      ],
+    });
+    fixture.detectChanges();
+
+    const raiz: HTMLElement = fixture.nativeElement;
+
+    // Título grande por categoría y subtítulo por subcategoría.
+    expect(
+      [...raiz.querySelectorAll('h2')].map((h) => h.textContent?.trim()),
+    ).toEqual(['electronico', 'aseo']);
+
+    // El bloque de la categoría contiene al de sus subcategorías, cada una con
+    // solo sus productos. Las tarjetas también usan h3, así que se comprueba
+    // dentro de su propio bloque.
+    const electronico = raiz.querySelector('[id="seccion-electronico-1"]');
+    const subcategorias = [
+      ...(electronico?.querySelectorAll(':scope > div[id^="seccion-"]') ?? []),
+    ];
+    expect(
+      subcategorias.map((bloque) => bloque.querySelector('h3')?.textContent?.trim()),
+    ).toEqual(['neveras', 'ventiladores']);
+    expect(electronico?.querySelector('[id="seccion-neveras-2"]')).toBeTruthy();
+    expect(electronico?.querySelector('[id="seccion-ventiladores-3"]')).toBeTruthy();
+    expect(electronico?.querySelectorAll('app-producto-card').length).toBe(3);
+    expect(raiz.querySelector('[id="seccion-neveras-2"]')?.textContent).toContain(
+      'Nevera No Frost',
+    );
+    // Las subcategorías no se repiten fuera de su categoría.
+    expect(
+      raiz.querySelector('[id="seccion-aseo-4"]')?.querySelector('[id="seccion-neveras-2"]'),
+    ).toBeNull();
+
+    // El acceso rápido lista categorías; las subcategorías se ven dentro.
+    expect(raiz.querySelector('nav a[href="/tienda#seccion-electronico-1"]')).toBeTruthy();
+    expect(raiz.querySelector('nav a[href="/tienda#seccion-neveras-2"]')).toBeNull();
+  });
 });

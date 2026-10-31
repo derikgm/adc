@@ -7,11 +7,13 @@
  *     productos: [
  *       { id, nombre, precio, moneda, imagen_url, seccion_id, seccion }
  *     ],
- *     secciones: [ { id, nombre } ]
+ *     secciones: [ { id, nombre, padre_id } ]
  *   }
  *
  * La tienda agrupa cada producto por su `seccion` y ordena los grupos según la
  * lista `secciones`, que es el orden que ha puesto el panel de administración.
+ * `padre_id` dice si esa sección es una categoría principal (`null`) o una
+ * subcategoría colgando de otra; de ahí sale `categorias`.
  */
 
 /** Producto tal y como llega del servidor, con todo aún sin normalizar. */
@@ -49,6 +51,24 @@ export interface Catalogo {
   secciones: string[];
   /** Productos de cada sección, usando el mismo nombre que en `secciones`. */
   productos: Record<string, Producto[]>;
+  /**
+   * Las mismas secciones pero en árbol: categorías principales con sus
+   * subcategorías colgando. Se saca de `padre_id`, que el servidor manda en
+   * `secciones`; cuando no lo manda (respolds antiguos, `/delys/dulces`) todo
+   * queda como categoría principal y el árbol equivale a la lista plana.
+   */
+  categorias: Categoria[];
+}
+
+/**
+ * Una categoría de la tienda. `productos` son solo los asignados a ella misma;
+ * los de las subcategorías viven en `subcategorias`, sin subir al padre.
+ */
+export interface Categoria {
+  id: number | null;
+  nombre: string;
+  productos: Producto[];
+  subcategorias: Categoria[];
 }
 
 /**
@@ -90,7 +110,8 @@ export function normalizarProducto(bruto: ProductoServidor): Producto {
  *
  * - Se agrupa por la sección del producto, no por las claves del objeto: así no
  *   se pierde ninguno aunque su sección no figure en la lista.
- * - Las secciones que no lleven ningún producto no se pintan (pasaba ya antes).
+ * - Las secciones que no lleven ningún producto no se pintan (pasaba ya antes),
+ *   salvo la categoría principal de una subcategoría que sí los tenga.
  * - Lo que sobre de orden (una sección que llega por producto pero no en la
  *   lista) se queda al final, y los productos sin sección van agrupados en
  *   `SECCION_SIN_SECCION`.
@@ -98,11 +119,13 @@ export function normalizarProducto(bruto: ProductoServidor): Producto {
 export function normalizarCatalogoADC(datos: unknown): Catalogo {
   const bruto = (datos ?? {}) as Record<string, unknown>;
 
-  const anunciadas: string[] = Array.isArray(bruto['secciones'])
-    ? (bruto['secciones'] as unknown[])
-        .map(nombreDeSeccion)
-        .filter((nombre): nombre is string => nombre !== null)
+  const anuncio = Array.isArray(bruto['secciones'])
+    ? (bruto['secciones'] as unknown[]).map(leerSeccion)
     : [];
+
+  const anunciadas = anuncio
+    .map((seccion) => seccion.nombre)
+    .filter((nombre): nombre is string => nombre !== null);
 
   const listado = Array.isArray(bruto['productos'])
     ? (bruto['productos'] as ProductoServidor[])
@@ -122,8 +145,25 @@ export function normalizarCatalogoADC(datos: unknown): Catalogo {
     else grupos.set(producto.seccion, [producto]);
   }
 
+  // Categorías que sí se pintan aunque no lleven productos propios: aquellas de
+  // las que cuelga alguna subcategoría con productos. Sin esto, «electronico»
+  // desaparecía de la tienda y sus subcategorías quedaban huérfanas.
+  const padresConProductos = new Set<number>();
+  for (const seccion of anuncio) {
+    if (seccion.nombre !== null && seccion.padreId !== null && grupos.has(seccion.nombre)) {
+      padresConProductos.add(seccion.padreId);
+    }
+  }
+
   const secciones = [
-    ...anunciadas.filter((nombre) => grupos.has(nombre)),
+    ...anuncio
+      .filter(
+        (seccion) =>
+          seccion.nombre !== null &&
+          (grupos.has(seccion.nombre) ||
+            (seccion.id !== null && padresConProductos.has(seccion.id))),
+      )
+      .map((seccion) => seccion.nombre as string),
     ...[...grupos.keys()].filter((nombre) => !anunciadas.includes(nombre)),
   ];
 
@@ -138,7 +178,78 @@ export function normalizarCatalogoADC(datos: unknown): Catalogo {
     ];
   }
 
-  return { secciones, productos };
+  return { secciones, productos, categorias: armarCategorias(anuncio, secciones, productos) };
+}
+
+/**
+ * Arma el árbol de categorías y subcategorías respetando `orden`, que es la
+ * lista —ya filtrada— que decidió la normalización.
+ *
+ * La pertenencia se resuelve por **nombre** porque los grupos están indexados
+ * así. Si el `padre_id` apunta a una sección que no está en la lista, o a otra
+ * subcategoría, el nodo se queda como categoría principal: en la web nunca debe
+ * desaparecer un producto por tener un enlace raro.
+ */
+function armarCategorias(
+  anuncio: SeccionLeida[],
+  orden: string[],
+  productos: Record<string, Producto[]>,
+): Categoria[] {
+  const nombrePorId = new Map<number, string>();
+  for (const seccion of anuncio) {
+    if (seccion.id !== null && seccion.nombre !== null) nombrePorId.set(seccion.id, seccion.nombre);
+  }
+
+  const padrePorNombre = new Map<string, string>();
+  for (const seccion of anuncio) {
+    if (seccion.nombre === null || seccion.padreId === null) continue;
+    const padre = nombrePorId.get(seccion.padreId);
+    if (padre && padre !== seccion.nombre) padrePorNombre.set(seccion.nombre, padre);
+  }
+
+  const nodos = new Map<string, Categoria>();
+  for (const nombre of orden) {
+    const idAnunciado = anuncio.find((seccion) => seccion.nombre === nombre)?.id ?? null;
+    // Sin id en la lista se recupera de un producto del grupo (valen el mismo).
+    const grupo = productos[nombre] ?? [];
+    const id = idAnunciado ?? grupo[0]?.seccion_id ?? null;
+    nodos.set(nombre, { id, nombre, productos: grupo, subcategorias: [] });
+  }
+
+  const raices: Categoria[] = [];
+  for (const nombre of orden) {
+    const nodo = nodos.get(nombre)!;
+    const nombreDelPadre = padrePorNombre.get(nombre);
+    const padre = nombreDelPadre ? nodos.get(nombreDelPadre) : undefined;
+
+    // Un nivel nada más: si el padre es a su vez subcategoría, se pinta suelto.
+    if (padre && !padrePorNombre.has(padre.nombre)) padre.subcategorias.push(nodo);
+    else raices.push(nodo);
+  }
+
+  return raices;
+}
+
+/** Sección de la lista `secciones`, con el enlace a su padre ya leído. */
+interface SeccionLeida {
+  nombre: string | null;
+  id: number | null;
+  padreId: number | null;
+}
+
+/** Lee una sección anunciada, venga como nombre suelto o como objeto. */
+function leerSeccion(valor: unknown): SeccionLeida {
+  const numero = (campo: string): number | null => {
+    if (typeof valor !== 'object' || valor === null) return null;
+    const bruto = (valor as Record<string, unknown>)[campo];
+    return typeof bruto === 'number' ? bruto : null;
+  };
+
+  return {
+    nombre: nombreDeSeccion(valor),
+    id: numero('id'),
+    padreId: numero('padre_id') ?? numero('parent_id'),
+  };
 }
 
 /**
