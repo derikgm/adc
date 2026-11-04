@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { HomePageComponent } from './pages/home.page';
+import { ProductoDetallePageComponent } from './pages/producto-detalle.page';
 import { TiendaPageComponent } from './pages/tienda.page';
 
 /**
@@ -16,6 +17,13 @@ export const routes: Routes = [
     path: 'tienda',
     component: TiendaPageComponent,
     title: 'Tienda · ADC',
+  },
+  {
+    // La ficha de una publicación: `/producto/5`. El título lo cambia la propia
+    // página con `SeoService`, que pone el nombre del producto.
+    path: 'producto/:id',
+    component: ProductoDetallePageComponent,
+    title: 'Producto · ADC',
   },
   { path: '**', redirectTo: '' },
 ];

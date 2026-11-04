@@ -1,7 +1,10 @@
 import { Component } from '@angular/core';
 
-/** Número de WhatsApp del cliente, en formato internacional y sin el «+». */
-const NUMERO_WHATSAPP = '59061926';
+/**
+ * Número de WhatsApp del cliente, en formato internacional y sin el «+». Lo usan
+ * este botón flotante y la ficha de producto, que escribe un mensaje ya relleno.
+ */
+export const NUMERO_WHATSAPP = '59061926';
 
 /**
  * Botón flotante de WhatsApp (esquina inferior derecha), visible en todas las

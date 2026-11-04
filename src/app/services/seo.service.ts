@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
-import { Meta } from '@angular/platform-browser';
+import { Meta, Title } from '@angular/platform-browser';
 
 /** URL pública del sitio (GitHub Pages). */
 export const URL_SITIO = 'https://derikgm.github.io/adc';
@@ -8,7 +8,7 @@ export const URL_SITIO = 'https://derikgm.github.io/adc';
 export interface PaginaSeo {
   titulo: string;
   descripcion: string;
-  /** Fragmento de ruta: `/` o `/tienda`. */
+  /** Fragmento de ruta: `/`, `/tienda` o `/producto/5`. */
   ruta: string;
   /** Imagen para los previews sociales (URL absoluta). */
   imagen?: string;
@@ -17,18 +17,23 @@ export interface PaginaSeo {
 }
 
 /**
- * SEO por ruta: description, Open Graph, canonical y JSON-LD. Cada página
- * llama a `fijar()` desde su constructor (o un effect) y el `<head>` queda
+ * SEO por ruta: `<title>`, description, Open Graph, canonical y JSON-LD. Cada
+ * página llama a `fijar()` desde su constructor (o un effect) y el `<head>` queda
  * coherente aunque sea una SPA sin prerendering.
+ *
+ * `titulo` pinta también en la pestaña: en el teléfono, con veinte pestañas
+ * abiertas, lo que se lee es el nombre del producto y no «Producto · ADC».
  */
 @Injectable({ providedIn: 'root' })
 export class SeoService {
   private readonly documento = inject(DOCUMENT);
   private readonly meta = inject(Meta);
+  private readonly title = inject(Title);
 
   fijar(pagina: PaginaSeo): void {
     const url = URL_SITIO + (pagina.ruta === '/' ? '/' : pagina.ruta);
 
+    this.title.setTitle(pagina.titulo);
     this.meta.updateTag({ name: 'description', content: pagina.descripcion });
     this.meta.updateTag({ property: 'og:title', content: pagina.titulo });
     this.meta.updateTag({

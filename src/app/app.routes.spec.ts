@@ -21,6 +21,16 @@ describe('Rutas', () => {
     expect(routes[1].title).toBe('Tienda · ADC');
   });
 
+  it('define la ficha de producto antes del comodín', () => {
+    const ficha = routes.find((ruta) => ruta.path === 'producto/:id');
+
+    expect(ficha?.title).toBe('Producto · ADC');
+    // El comodín tiene que quedar el último: si no, `/producto/5` cae al inicio
+    // y la ficha es inalcanzable.
+    expect(routes.at(-1)?.path).toBe('**');
+    expect(routes.indexOf(ficha!)).toBeLessThan(routes.length - 1);
+  });
+
   it('redirige cualquier ruta desconocida a /', async () => {
     const router = TestBed.inject(Router);
     await router.navigateByUrl('/esta-ruta-no-existe');

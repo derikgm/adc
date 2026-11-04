@@ -5,7 +5,8 @@
  *
  *   GET /adc/productos → {
  *     productos: [
- *       { id, nombre, precio, moneda, imagen_url, seccion_id, seccion }
+ *       { id, nombre, precio, moneda, imagen_url, seccion_id, seccion,
+ *         modelos: [ { id, nombre, precio, moneda, imagen_url, atributos } ] }
  *     ],
  *     secciones: [ { id, nombre, padre_id } ]
  *   }
@@ -16,7 +17,9 @@
  * subcategoría colgando de otra; de ahí sale `categorias`.
  */
 
-/** Producto tal y como llega del servidor, con todo aún sin normalizar. */
+/**
+ * Producto tal y como llega del servidor, con todo aún sin normalizar.
+ */
 export interface ProductoServidor {
   id: number;
   nombre: string;
@@ -30,6 +33,44 @@ export interface ProductoServidor {
    */
   seccion?: string | { id?: number; nombre?: string } | null;
   seccion_id?: number | null;
+  /**
+   * Las variantes de esta publicación. `GET /adc/productos` las mete dentro del
+   * producto, en el orden en que se dieron de alta; una publicación vieja o un
+   * catálogo sin esa clave se leen como «sin modelos», que es un producto normal
+   * y corriente.
+   */
+  modelos?: unknown;
+}
+
+/** Un modelo, sin normalizar. */
+export interface ModeloServidor {
+  id: number;
+  nombre: string;
+  precio: number;
+  moneda?: string | null;
+  imagen_url?: string | null;
+  atributos?: Record<string, unknown> | null;
+}
+
+/**
+ * Una característica de la ficha, ya para pintar.
+ *
+ * Se saca como lista y no como objeto porque el `jsonb` del servidor reordena las
+ * claves a su manera y el `@for` necesita un orden estable que Trackear.
+ */
+export interface Atributo {
+  etiqueta: string;
+  valor: string;
+}
+
+/** Un modelo ya listo para pintar. */
+export interface Modelo {
+  id: number;
+  nombre: string;
+  precio: number;
+  imagen_url: string | null;
+  moneda: string;
+  atributos: Atributo[];
 }
 
 /** Producto ya listo para pintar. */
@@ -43,6 +84,8 @@ export interface Producto {
   seccion: string | null;
   /** Id de esa sección, por si hay que enlazar con ella. */
   seccion_id: number | null;
+  /** Las variantes; vacío si la publicación se vende como un solo producto. */
+  modelos: Modelo[];
 }
 
 /** Catálogo agrupado por secciones. */
@@ -99,7 +142,58 @@ export function normalizarProducto(bruto: ProductoServidor): Producto {
     moneda: moneda || MONEDA_POR_DEFECTO,
     seccion: nombreDeSeccion(bruto.seccion),
     seccion_id: typeof bruto.seccion_id === 'number' ? bruto.seccion_id : null,
+    modelos: normalizarModelos(bruto.modelos),
   };
+}
+
+/**
+ * Los modelos de una publicación, vengan como vengan. Si el servidor no manda
+ * lista (catálogo antiguo, o `GET /delys/dulces`) quedan en `[]`: la publicación
+ * se vende tal cual, sin variantes.
+ */
+export function normalizarModelos(valor: unknown): Modelo[] {
+  if (!Array.isArray(valor)) return [];
+
+  return valor.map((bruto) => normalizarModelo(bruto as ModeloServidor));
+}
+
+function normalizarModelo(bruto: ModeloServidor): Modelo {
+  const precio = Number(bruto?.precio);
+  const moneda = String(bruto?.moneda ?? '')
+    .trim()
+    .toUpperCase();
+
+  return {
+    id: Number(bruto?.id),
+    nombre: String(bruto?.nombre ?? 'Modelo'),
+    precio: Number.isFinite(precio) ? precio : 0,
+    imagen_url: bruto?.imagen_url || null,
+    moneda: moneda || MONEDA_POR_DEFECTO,
+    atributos: leerAtributos(bruto?.atributos),
+  };
+}
+
+/**
+ * La ficha (`jsonb` del servidor) a lista de pares. Se cae cualquier valor que no
+ * sea texto, número o booleano —una lista no tiene cómo pintarse en una línea— y
+ * las etiquetas vacías.
+ */
+function leerAtributos(valor: unknown): Atributo[] {
+  if (typeof valor !== 'object' || valor === null) return [];
+
+  const pares: Atributo[] = [];
+
+  for (const [clave, crudo] of Object.entries(valor as Record<string, unknown>)) {
+    const etiqueta = clave.trim();
+    const texto =
+      typeof crudo === 'string' || typeof crudo === 'number' || typeof crudo === 'boolean'
+        ? String(crudo).trim()
+        : '';
+
+    if (etiqueta && texto) pares.push({ etiqueta, valor: texto });
+  }
+
+  return pares;
 }
 
 /**

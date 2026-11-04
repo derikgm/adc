@@ -1,8 +1,21 @@
 import { TestBed } from '@angular/core/testing';
 import { ComponentFixture } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { Producto } from '../models/productos';
+import { Modelo, Producto } from '../models/productos';
 import { ProductoCardComponent } from './producto-card.component';
+
+function modelo(pega: Partial<Modelo> = {}): Modelo {
+  return {
+    id: 11,
+    nombre: '240 L inverter',
+    precio: 320,
+    imagen_url: null,
+    moneda: 'USD',
+    atributos: [{ etiqueta: 'Peso', valor: '38 kg' }],
+    ...pega,
+  };
+}
 
 function producto(pega: Partial<Producto> = {}): Producto {
   return {
@@ -13,6 +26,7 @@ function producto(pega: Partial<Producto> = {}): Producto {
     moneda: 'CUP',
     seccion: 'equipos',
     seccion_id: 1,
+    modelos: [],
     ...pega,
   };
 }
@@ -22,6 +36,8 @@ describe('ProductoCard', () => {
 
   beforeEach(() => {
     TestBed.resetTestingModule();
+    // La tarjeta enlaza con la ficha, así que necesita el router montado.
+    TestBed.configureTestingModule({ providers: [provideRouter([])] });
     fixture = TestBed.createComponent(ProductoCardComponent);
   });
 
@@ -93,6 +109,60 @@ describe('ProductoCard', () => {
     expect(img).toBeTruthy();
     expect(img!.getAttribute('src')).toBe('compresor.jpg');
     expect(img!.getAttribute('alt')).toBe('Compresor');
+  });
+
+  it('enlaza con la ficha del producto', () => {
+    const raiz = montar(producto({ id: 37 }));
+    const enlace = raiz.querySelector('a');
+
+    expect(enlace?.getAttribute('href')).toContain('/producto/37');
+    expect(enlace?.getAttribute('aria-label')).toBe('Ver Taladro percutor');
+  });
+
+  it('con modelos avisa cuántos hay y pinta el precio del más barato', () => {
+    const raiz = montar(
+      producto({
+        precio: 999,
+        moneda: 'USD',
+        modelos: [modelo({ precio: 420 }), modelo({ id: 12, precio: 320 })],
+      }),
+    );
+
+    expect(raiz.textContent).toContain('2 modelos');
+    // El de la publicación (999) no se pinta: manda el modelo más barato.
+    expect(raiz.textContent).toContain('320 USD');
+    expect(raiz.textContent).not.toContain('999');
+    // Precios distintos → «desde», que es lo que decide en el teléfono.
+    expect(raiz.textContent).toContain('desde');
+  });
+
+  it('sin modelos ni «desde» ni aviso, y un solo modelo no lleva la etiqueta', () => {
+    expect(montar(producto()).textContent).not.toContain('desde');
+    expect(montar(producto({ modelos: [modelo()] })).textContent).not.toContain('1 modelos');
+  });
+
+  it('todos los modelos al mismo precio: precio suelto, sin «desde»', () => {
+    const raiz = montar(
+      producto({ modelos: [modelo({ precio: 320 }), modelo({ id: 12, precio: 320 })] }),
+    );
+
+    expect(raiz.textContent).toContain('320 USD');
+    expect(raiz.textContent).not.toContain('desde');
+  });
+
+  it('si la publicación no tiene foto, se usa la del primer modelo con ella', () => {
+    const raiz = montar(
+      producto({
+        imagen_url: null,
+        modelos: [
+          modelo({ id: 12, imagen_url: null }),
+          modelo({ id: 13, imagen_url: 'modelo.jpg' }),
+        ],
+      }),
+    );
+
+    const img = raiz.querySelector('img');
+    expect(img?.getAttribute('src')).toBe('modelo.jpg');
   });
 });
 

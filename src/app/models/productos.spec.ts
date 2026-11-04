@@ -3,6 +3,7 @@ import {
   MONEDA_POR_DEFECTO,
   SECCION_SIN_SECCION,
   normalizarCatalogoADC,
+  normalizarModelos,
   normalizarProducto,
   todosLosProductos,
 } from './productos';
@@ -27,7 +28,15 @@ describe('Modelo de productos', () => {
         moneda: 'CUP',
         seccion: 'electronico',
         seccion_id: 4,
+        modelos: [],
       });
+    });
+
+    it('un producto que no manda modelos se vende como uno solo', () => {
+      expect(normalizarProducto({ id: 1, nombre: 'Cable', precio: 90 }).modelos).toEqual([]);
+      // `modelos: null` o un catálogo viejo tampoco rompen nada.
+      expect(normalizarProducto({ id: 1, nombre: 'Cable', precio: 90, modelos: null }).modelos)
+        .toEqual([]);
     });
 
     it('asume CUP y sección nula cuando el servidor no envía esos campos', () => {
@@ -43,6 +52,85 @@ describe('Modelo de productos', () => {
 
       expect(producto.precio).toBe(0);
       expect(producto.nombre).toBe('');
+    });
+  });
+
+  describe('modelos de una publicación', () => {
+    it('normaliza precio, moneda y foto de cada modelo', () => {
+      const [modelo] = normalizarModelos([
+        {
+          id: 21,
+          nombre: '340 L inverter',
+          // `numeric` llega como texto según el driver: se convierte igual.
+          precio: '420.50' as unknown as number,
+          moneda: 'usd',
+          imagen_url: '',
+          atributos: { Peso: '45 kg' },
+        },
+      ]);
+
+      expect(modelo).toEqual({
+        id: 21,
+        nombre: '340 L inverter',
+        precio: 420.5,
+        imagen_url: null,
+        moneda: 'USD',
+        atributos: [{ etiqueta: 'Peso', valor: '45 kg' }],
+      });
+    });
+
+    it('sin moneda en el modelo asume la de casa, no la de la publicación', () => {
+      const [modelo] = normalizarModelos([{ id: 1, nombre: 'Base', precio: 10 }]);
+
+      expect(modelo.moneda).toBe(MONEDA_POR_DEFECTO);
+    });
+
+    it('la ficha se pinta como lista de pares, en el orden que manda el servidor', () => {
+      const [modelo] = normalizarModelos([
+        {
+          id: 1,
+          nombre: 'Base',
+          precio: 10,
+          atributos: { Ruido: '41 dB', Peso: '38 kg', Garantía: '1 año' },
+        },
+      ]);
+
+      expect(modelo.atributos.map((atributo) => atributo.etiqueta)).toEqual([
+        'Ruido',
+        'Peso',
+        'Garantía',
+      ]);
+    });
+
+    it('de la ficha solo se quedan los valores de una línea', () => {
+      const [modelo] = normalizarModelos([
+        {
+          id: 1,
+          nombre: 'Base',
+          precio: 10,
+          atributos: {
+            Consumo: 120,
+            Regulable: true,
+            '  ': 'nada',
+            Vacío: '   ',
+            Medidas: ['30 cm', '40 cm'],
+            Extra: { detalle: 'anidada' },
+          },
+        },
+      ]);
+
+      expect(modelo.atributos).toEqual([
+        { etiqueta: 'Consumo', valor: '120' },
+        { etiqueta: 'Regulable', valor: 'true' },
+      ]);
+    });
+
+    it('una ficha que no es objeto, y modelos que no son lista, no revientan', () => {
+      expect(normalizarModelos(undefined)[0]).toBeUndefined();
+      expect(normalizarModelos({ 0: 'no es lista' })).toEqual([]);
+
+      const [modelo] = normalizarModelos([{ id: 1, nombre: 'Base', precio: 10, atributos: 'Peso: 38' }]);
+      expect(modelo.atributos).toEqual([]);
     });
   });
 
